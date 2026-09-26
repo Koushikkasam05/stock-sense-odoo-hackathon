@@ -3,7 +3,6 @@
 A high-performance, real-time inventory management and supply chain logistics platform built with Flask, PostgreSQL / SQLAlchemy 2.x, Gunicorn, and modern Vanilla JS + Bootstrap.
 
 ---
-
 ## 1. Project Title
 **StockSense: Intelligent Multi-Warehouse Inventory & Real-Time Stock Tracking System**
 
