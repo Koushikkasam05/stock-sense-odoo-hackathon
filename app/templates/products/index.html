@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block page_title %}Products & Stock Catalogue{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <p class="text-muted small mb-0">Master catalog of all managed SKU items with real-time stock balances.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('products.export_csv') }}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+        </a>
+        <a href="{{ url_for('products.create') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i> Add Product
+        </a>
+    </div>
+</div>
+
+<!-- Search & Filtering -->
+<div class="card-theme p-3 mb-3">
+    <form method="GET" action="{{ url_for('products.index') }}" class="row g-2 align-items-center">
+        <div class="col-md-4">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" class="form-control" placeholder="Search by SKU, product name..." value="{{ current_filters.q }}">
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <select name="category_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if current_filters.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <select name="stock_status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="all" {% if current_filters.stock_status == 'all' %}selected{% endif %}>All Stock States</option>
+                <option value="in_stock" {% if current_filters.stock_status == 'in_stock' %}selected{% endif %}>In Stock</option>
+                <option value="low_stock" {% if current_filters.stock_status == 'low_stock' %}selected{% endif %}>Low Stock</option>
+                <option value="out_of_stock" {% if current_filters.stock_status == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+            </select>
+        </div>
+
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-outline-primary w-100">Filter</button>
+            <a href="{{ url_for('products.index') }}" class="btn btn-sm btn-outline-secondary" title="Clear Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Product Table -->
+<div class="card-theme">
+    <div class="table-responsive">
+        <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>SKU / Code</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Unit (UoM)</th>
+                    <th>On-Hand Stock</th>
+                    <th>Min. Reorder Level</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if products %}
+                    {% for p in products %}
+                    <tr>
+                        <td><code>{{ p.sku }}</code></td>
+                        <td>
+                            <a href="{{ url_for('products.detail', product_id=p.id) }}" class="fw-bold text-decoration-none text-dark">
+                                {{ p.name }}
+                            </a>
+                            {% if p.description %}
+                            <div class="text-muted small text-truncate" style="max-width: 250px;">{{ p.description }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if p.category %}
+                                {{ p.category.name }}
+                            {% else %}
+                                <span class="text-muted">None</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ p.uom }}</td>
+                        <td>
+                            <span class="fw-bold fs-6">{{ p.total_stock }}</span>
+                        </td>
+                        <td>{{ p.min_stock_level }}</td>
+                        <td>
+                            {% if p.stock_status == 'in_stock' %}
+                                <span class="badge bg-success">In Stock</span>
+                            {% elif p.stock_status == 'low_stock' %}
+                                <span class="badge bg-warning text-dark">Low Stock</span>
+                            {% else %}
+                                <span class="badge bg-danger">Out of Stock</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('products.detail', product_id=p.id) }}" class="btn btn-sm btn-outline-primary me-1" title="View History & Stock Locations">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{{ url_for('products.edit', product_id=p.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit Product">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-box fs-1 d-block mb-2 text-secondary"></i>
+                            No products found matching the criteria.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

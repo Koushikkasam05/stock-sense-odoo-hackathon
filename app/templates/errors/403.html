@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block page_title %}Access Denied (403){% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <div class="display-1 fw-bold text-danger mb-3">403</div>
+    <h3 class="fw-bold mb-2">Access Denied</h3>
+    <p class="text-muted mb-4">You do not have the required permissions to access this administrative resource. This action is restricted to Inventory Managers.</p>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary px-4 py-2">
+        <i class="bi bi-house me-1"></i> Return to Dashboard
+    </a>
+</div>
+{% endblock %}

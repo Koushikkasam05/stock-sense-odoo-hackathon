@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block page_title %}Location Stock - {{ location.full_name }} ({{ location.code }}){% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a href="{{ url_for('warehouses.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h4 class="fw-bold mb-0">{{ location.full_name }} Stock</h4>
+            <div class="text-muted small">Code: <code>{{ location.code }}</code> &bull; Warehouse: {{ location.warehouse.name if location.warehouse else 'Virtual' }}</div>
+        </div>
+    </div>
+    <span class="badge {% if location.is_active %}bg-success{% else %}bg-danger{% endif %} fs-6">
+        {{ 'ACTIVE' if location.is_active else 'INACTIVE' }}
+    </span>
+</div>
+
+<div class="card-theme">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><i class="bi bi-geo-alt text-success me-2"></i>Physical Inventory Stored at this Location</span>
+        <span class="badge bg-light text-dark border">{{ stock_items|length }} Product(s)</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>On-Hand Quantity</th>
+                    <th>Unit</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if stock_items %}
+                    {% for item in stock_items %}
+                    <tr>
+                        <td class="fw-bold">{{ item.product.name }}</td>
+                        <td><code>{{ item.product.sku }}</code></td>
+                        <td><span class="fw-bold fs-6">{{ item.quantity }}</span></td>
+                        <td>{{ item.uom }}</td>
+                        <td class="text-end">
+                            <a href="{{ url_for('products.detail', product_id=item.product.id) }}" class="btn btn-sm btn-outline-primary">
+                                Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-box fs-1 d-block mb-2 text-secondary"></i>
+                            No products currently stored at this location.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

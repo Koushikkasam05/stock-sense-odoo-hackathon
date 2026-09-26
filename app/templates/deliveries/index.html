@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block page_title %}Outgoing Delivery Orders{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <p class="text-muted small mb-0">Track and fulfill customer orders through picking, packing, and validation workflows.</p>
+    </div>
+    <a href="{{ url_for('deliveries.create') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-lg me-1"></i> New Delivery Order
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card-theme p-3 mb-3">
+    <form method="GET" action="{{ url_for('deliveries.index') }}" class="row g-2 align-items-center">
+        <div class="col-md-5">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" class="form-control" placeholder="Search by delivery number or customer..." value="{{ q }}">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Statuses</option>
+                <option value="draft" {% if current_status == 'draft' %}selected{% endif %}>Draft</option>
+                <option value="waiting" {% if current_status == 'waiting' %}selected{% endif %}>Waiting (Pack)</option>
+                <option value="ready" {% if current_status == 'ready' %}selected{% endif %}>Ready (Picked)</option>
+                <option value="done" {% if current_status == 'done' %}selected{% endif %}>Done (Shipped)</option>
+                <option value="canceled" {% if current_status == 'canceled' %}selected{% endif %}>Canceled</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-outline-primary w-100">Filter</button>
+            <a href="{{ url_for('deliveries.index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Deliveries Table -->
+<div class="card-theme">
+    <div class="table-responsive">
+        <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Delivery #</th>
+                    <th>Customer / Partner</th>
+                    <th>Source Location</th>
+                    <th>Scheduled Date</th>
+                    <th>Total Items</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if deliveries %}
+                    {% for d in deliveries %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('deliveries.detail', picking_id=d.id) }}" class="fw-bold text-decoration-none text-dark">
+                                {{ d.name }}
+                            </a>
+                        </td>
+                        <td class="fw-semibold">{{ d.partner_name or '-' }}</td>
+                        <td>{{ d.source_location.full_name }}</td>
+                        <td class="small">{{ d.scheduled_date.strftime('%Y-%m-%d') if d.scheduled_date else '-' }}</td>
+                        <td>{{ d.moves|length }} items</td>
+                        <td>
+                            <span class="badge badge-status {{ d.badge_class }}">{{ d.status.upper() }}</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('deliveries.detail', picking_id=d.id) }}" class="btn btn-sm btn-outline-primary">
+                                Pick / Pack / Ship
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+                            No delivery orders found.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

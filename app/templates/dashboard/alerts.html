@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block page_title %}Stock Alerts & Shortages{% endblock %}
+
+{% block content %}
+<div class="card-theme">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <span class="fw-bold fs-6"><i class="bi bi-bell text-danger me-2"></i>Critical Low & Out-of-Stock Alerts</span>
+            <p class="text-muted small mb-0">Items requiring immediate reordering or replenishment</p>
+        </div>
+        <span class="badge bg-danger fs-6">{{ alerts|length }} Alerts Active</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Current Stock</th>
+                    <th>Min. Reorder Level</th>
+                    <th>Alert Severity</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if alerts %}
+                    {% for item in alerts %}
+                    <tr class="{% if item.is_out_of_stock %}table-danger bg-opacity-25{% else %}table-warning bg-opacity-25{% endif %}">
+                        <td class="fw-bold">{{ item.name }}</td>
+                        <td><code>{{ item.sku }}</code></td>
+                        <td>{{ item.category }}</td>
+                        <td>
+                            <span class="fs-6 fw-bold {% if item.is_out_of_stock %}text-danger{% else %}text-warning{% endif %}">
+                                {{ item.current_stock }} {{ item.uom }}
+                            </span>
+                        </td>
+                        <td>{{ item.min_stock_level }} {{ item.uom }}</td>
+                        <td>
+                            {% if item.is_out_of_stock %}
+                                <span class="badge bg-danger"><i class="bi bi-exclamation-octagon-fill me-1"></i> OUT OF STOCK</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle-fill me-1"></i> LOW STOCK</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('receipts.create') }}" class="btn btn-sm btn-success">
+                                <i class="bi bi-plus-circle me-1"></i> Order Receipt
+                            </a>
+                            <a href="{{ url_for('products.detail', product_id=item.id) }}" class="btn btn-sm btn-outline-secondary">
+                                Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-check-circle-fill text-success fs-1 d-block mb-2"></i>
+                            All inventory levels are healthy and above their minimum thresholds!
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

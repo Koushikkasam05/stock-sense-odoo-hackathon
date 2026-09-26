@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block page_title %}Page Not Found (404){% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <div class="display-1 fw-bold text-primary mb-3">404</div>
+    <h3 class="fw-bold mb-2">Resource or Page Not Found</h3>
+    <p class="text-muted mb-4">The requested inventory document, product, or URL does not exist or has been moved.</p>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary px-4 py-2">
+        <i class="bi bi-house me-1"></i> Return to Dashboard
+    </a>
+</div>
+{% endblock %}

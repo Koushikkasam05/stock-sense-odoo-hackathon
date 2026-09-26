@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block page_title %}Inventory Adjustments & Stock Audits{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <p class="text-muted small mb-0">Reconcile physical stock counts with system records and automatically audit variances in the stock ledger.</p>
+    </div>
+    <a href="{{ url_for('adjustments.create') }}" class="btn btn-info btn-sm text-dark fw-semibold">
+        <i class="bi bi-plus-lg me-1"></i> New Physical Count Adjustment
+    </a>
+</div>
+
+<!-- Adjustments Table -->
+<div class="card-theme">
+    <div class="table-responsive">
+        <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Adjustment #</th>
+                    <th>Date Recorded</th>
+                    <th>Product</th>
+                    <th>Location</th>
+                    <th>Audit Details</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if adjustments %}
+                    {% for adj in adjustments %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('adjustments.detail', picking_id=adj.id) }}" class="fw-bold text-decoration-none text-dark">
+                                {{ adj.name }}
+                            </a>
+                        </td>
+                        <td class="small">{{ adj.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if adj.moves %}
+                            <div class="fw-bold">{{ adj.moves[0].product.name }}</div>
+                            <div class="text-muted small"><code>{{ adj.moves[0].product.sku }}</code></div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                {{ adj.dest_location.full_name if adj.dest_location.location_type == 'internal' else adj.source_location.full_name }}
+                            </span>
+                        </td>
+                        <td class="small text-muted" style="max-width: 250px;">
+                            {{ adj.notes or '-' }}
+                        </td>
+                        <td>
+                            <span class="badge bg-success">APPLIED</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('adjustments.detail', picking_id=adj.id) }}" class="btn btn-sm btn-outline-primary">
+                                View Audit
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-sliders fs-1 d-block mb-2 text-secondary"></i>
+                            No inventory adjustments recorded yet.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

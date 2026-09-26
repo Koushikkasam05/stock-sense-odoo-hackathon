@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block page_title %}System Notifications & Stock Alerts{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <p class="text-muted small mb-0">In-app notifications for stock shortage alerts, pending operation reviews, and system notices.</p>
+    </div>
+    {% if notifications %}
+    <form method="POST" action="{{ url_for('notifications.mark_all_read') }}">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-check2-all me-1"></i> Mark All as Read
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+<div class="card-theme">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold"><i class="bi bi-bell text-primary me-2"></i>Inbox Notifications</span>
+        <span class="badge bg-light text-dark border">{{ notifications|length }} Total</span>
+    </div>
+
+    <div class="p-3">
+        {% if notifications %}
+            <div class="list-group list-group-flush">
+                {% for n in notifications %}
+                <div class="list-group-item d-flex justify-content-between align-items-start py-3 {% if not n.is_read %}bg-light bg-opacity-50 border-start border-3 border-primary{% endif %}">
+                    <div class="me-3">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            {% if n.notification_type == 'danger' %}
+                                <span class="badge bg-danger">Critical Alert</span>
+                            {% elif n.notification_type == 'warning' %}
+                                <span class="badge bg-warning text-dark">Warning</span>
+                            {% elif n.notification_type == 'success' %}
+                                <span class="badge bg-success">Success</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">Notice</span>
+                            {% endif %}
+                            <h6 class="mb-0 fw-bold">{{ n.title }}</h6>
+                            <small class="text-muted ms-2">{{ n.created_at.strftime('%b %d, %H:%M') }}</small>
+                        </div>
+                        <p class="mb-0 text-secondary small">{{ n.message }}</p>
+                    </div>
+
+                    {% if not n.is_read %}
+                    <form method="POST" action="{{ url_for('notifications.mark_read', notification_id=n.id) }}">
+                        <button type="submit" class="btn btn-sm btn-outline-primary" title="Mark as Read">
+                            <i class="bi bi-check-lg"></i>
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted small"><i class="bi bi-check2"></i> Read</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-bell-slash fs-1 d-block mb-2 text-secondary"></i>
+                You have no notifications in your inbox.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

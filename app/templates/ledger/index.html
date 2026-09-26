@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block page_title %}Stock Movement Ledger (Audit Log){% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <p class="text-muted small mb-0">Immutable, historical audit trail of all inventory events (Initial stock, Receipts, Deliveries, Transfers, and Adjustments).</p>
+    </div>
+    <a href="{{ url_for('ledger.export_csv', **current_filters) }}" class="btn btn-sm btn-outline-success">
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export Ledger CSV
+    </a>
+</div>
+
+<!-- Advanced Search & Multi-Criteria Filtering Card -->
+<div class="card-theme p-3 mb-4">
+    <form method="GET" action="{{ url_for('ledger.index') }}" class="row g-2">
+        <!-- SKU Search -->
+        <div class="col-md-2">
+            <label class="form-label small mb-1">SKU Code</label>
+            <input type="text" name="sku" class="form-control form-control-sm" placeholder="e.g., ELEC-SCAN" value="{{ current_filters.sku }}">
+        </div>
+
+        <!-- Product Filter -->
+        <div class="col-md-3">
+            <label class="form-label small mb-1">Product</label>
+            <select name="product_id" class="form-select form-select-sm">
+                <option value="">All Products</option>
+                {% for p in products %}
+                <option value="{{ p.id }}" {% if current_filters.product_id == p.id %}selected{% endif %}>{{ p.sku }} - {{ p.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Warehouse Filter -->
+        <div class="col-md-2">
+            <label class="form-label small mb-1">Warehouse</label>
+            <select name="warehouse_id" class="form-select form-select-sm">
+                <option value="">All Warehouses</option>
+                {% for wh in warehouses %}
+                <option value="{{ wh.id }}" {% if current_filters.warehouse_id == wh.id %}selected{% endif %}>{{ wh.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Location Filter -->
+        <div class="col-md-2">
+            <label class="form-label small mb-1">Location</label>
+            <select name="location_id" class="form-select form-select-sm">
+                <option value="">All Locations</option>
+                {% for loc in locations %}
+                <option value="{{ loc.id }}" {% if current_filters.location_id == loc.id %}selected{% endif %}>{{ loc.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Movement Type Filter -->
+        <div class="col-md-3">
+            <label class="form-label small mb-1">Movement Type</label>
+            <select name="movement_type" class="form-select form-select-sm">
+                <option value="all" {% if current_filters.movement_type == 'all' %}selected{% endif %}>All Types</option>
+                <option value="receipt" {% if current_filters.movement_type == 'receipt' %}selected{% endif %}>Receipt (Incoming)</option>
+                <option value="delivery" {% if current_filters.movement_type == 'delivery' %}selected{% endif %}>Delivery (Outgoing)</option>
+                <option value="transfer_in" {% if current_filters.movement_type == 'transfer_in' %}selected{% endif %}>Transfer (In)</option>
+                <option value="transfer_out" {% if current_filters.movement_type == 'transfer_out' %}selected{% endif %}>Transfer (Out)</option>
+                <option value="adjustment_gain" {% if current_filters.movement_type == 'adjustment_gain' %}selected{% endif %}>Adjustment (Gain)</option>
+                <option value="adjustment_loss" {% if current_filters.movement_type == 'adjustment_loss' %}selected{% endif %}>Adjustment (Loss)</option>
+                <option value="initial_stock" {% if current_filters.movement_type == 'initial_stock' %}selected{% endif %}>Initial / Opening Stock</option>
+            </select>
+        </div>
+
+        <!-- User / Operator Filter -->
+        <div class="col-md-2">
+            <label class="form-label small mb-1">User / Operator</label>
+            <select name="user_id" class="form-select form-select-sm">
+                <option value="">All Users</option>
+                {% for u in users %}
+                <option value="{{ u.id }}" {% if current_filters.user_id == u.id %}selected{% endif %}>{{ u.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Start Date -->
+        <div class="col-md-2">
+            <label class="form-label small mb-1">From Date</label>
+            <input type="date" name="start_date" class="form-control form-control-sm" value="{{ current_filters.start_date }}">
+        </div>
+
+        <!-- End Date -->
+        <div class="col-md-2">
+            <label class="form-label small mb-1">To Date</label>
+            <input type="date" name="end_date" class="form-control form-control-sm" value="{{ current_filters.end_date }}">
+        </div>
+
+        <!-- Free-text Search -->
+        <div class="col-md-4">
+            <label class="form-label small mb-1">Keyword Search</label>
+            <input type="text" name="q" class="form-control form-control-sm" placeholder="Reference, remarks, notes..." value="{{ current_filters.q }}">
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="col-md-2 d-flex align-items-end gap-2">
+            <button type="submit" class="btn btn-sm btn-primary w-100">
+                <i class="bi bi-filter"></i> Apply
+            </button>
+            <a href="{{ url_for('ledger.index') }}" class="btn btn-sm btn-outline-secondary" title="Reset Filters">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Ledger Table -->
+<div class="card-theme mb-3">
+    <div class="table-responsive">
+        <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Date / Time</th>
+                    <th>Reference</th>
+                    <th>Movement Type</th>
+                    <th>Product</th>
+                    <th>Location Movement</th>
+                    <th>Quantity Change</th>
+                    <th>Balance After</th>
+                    <th>User</th>
+                    <th>Remarks</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if entries %}
+                    {% for e in entries %}
+                    <tr>
+                        <td class="small text-nowrap">{{ e.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            <span class="fw-bold">{{ e.reference_document }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-secondary border small text-uppercase">
+                                {{ e.movement_type.replace('_', ' ') }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('products.detail', product_id=e.product.id) }}" class="fw-semibold text-dark text-decoration-none">
+                                {{ e.product.name }}
+                            </a>
+                            <div class="small text-muted"><code>{{ e.product.sku }}</code></div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ e.location.full_name }}</span>
+                        </td>
+                        <td>
+                            <span class="badge {{ e.badge_class }} fs-6">
+                                {{ "%+g"|format(e.quantity_change) }} {{ e.product.uom }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-bold fs-6">{{ e.balance_after }}</span> {{ e.product.uom }}
+                        </td>
+                        <td class="small text-muted">
+                            {{ e.user.full_name if e.user else 'System' }}
+                        </td>
+                        <td class="small text-muted text-truncate" style="max-width: 180px;">
+                            {{ e.notes or '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary"></i>
+                            No stock ledger movements recorded matching the search criteria.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Pagination Controls -->
+{% if pagination and pagination.pages > 1 %}
+<nav aria-label="Ledger Pagination" class="d-flex justify-content-between align-items-center">
+    <div class="small text-muted">
+        Showing page {{ pagination.page }} of {{ pagination.pages }} (Total {{ pagination.total }} movements)
+    </div>
+    <ul class="pagination pagination-sm mb-0">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('ledger.index', page=pagination.prev_num, **current_filters) }}">&laquo; Previous</a>
+        </li>
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('ledger.index', page=p, **current_filters) }}">{{ p }}</a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('ledger.index', page=pagination.next_num, **current_filters) }}">Next &raquo;</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

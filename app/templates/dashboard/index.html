@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block page_title %}Real-Time Inventory Dashboard{% endblock %}
+
+{% block content %}
+<!-- KPI Cards Row -->
+<div class="row g-3 mb-4">
+    <!-- Total Products In Stock -->
+    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+        <div class="kpi-card border-start border-4 border-info">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="kpi-label">Total In-Stock</span>
+                <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+            </div>
+            <div class="kpi-value text-dark">{{ kpis.in_stock_products }}</div>
+            <div class="small text-muted mt-1">out of {{ kpis.total_products }} registered</div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+        <div class="kpi-card border-start border-4 border-warning">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="kpi-label">Low Stock Items</span>
+                <div class="kpi-icon bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+            <div class="kpi-value text-warning">{{ kpis.low_stock_products }}</div>
+            <div class="small text-muted mt-1">Below minimum threshold</div>
+        </div>
+    </div>
+
+    <!-- Out of Stock Alert -->
+    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+        <div class="kpi-card border-start border-4 border-danger">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="kpi-label">Out of Stock</span>
+                <div class="kpi-icon bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-slash-circle"></i>
+                </div>
+            </div>
+            <div class="kpi-value text-danger">{{ kpis.out_of_stock_products }}</div>
+            <div class="small text-muted mt-1">Zero quantity balance</div>
+        </div>
+    </div>
+
+    <!-- Pending Receipts -->
+    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+        <div class="kpi-card border-start border-4 border-success">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="kpi-label">Pending Receipts</span>
+                <div class="kpi-icon bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-box-arrow-in-down"></i>
+                </div>
+            </div>
+            <div class="kpi-value text-success">{{ kpis.pending_receipts }}</div>
+            <div class="small text-muted mt-1">Awaiting verification</div>
+        </div>
+    </div>
+
+    <!-- Pending Deliveries -->
+    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+        <div class="kpi-card border-start border-4 border-primary">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="kpi-label">Pending Deliveries</span>
+                <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="kpi-value text-primary">{{ kpis.pending_deliveries }}</div>
+            <div class="small text-muted mt-1">Awaiting shipment</div>
+        </div>
+    </div>
+
+    <!-- Scheduled Transfers -->
+    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+        <div class="kpi-card border-start border-4 border-secondary">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="kpi-label">Internal Transfers</span>
+                <div class="kpi-icon bg-secondary bg-opacity-10 text-secondary">
+                    <i class="bi bi-arrow-left-right"></i>
+                </div>
+            </div>
+            <div class="kpi-value text-secondary">{{ kpis.scheduled_transfers }}</div>
+            <div class="small text-muted mt-1">Inter-location moves</div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Summary Breakdown Cards Row -->
+<div class="row g-3 mb-4">
+    <!-- Stock Summary by Warehouse -->
+    <div class="col-lg-6">
+        <div class="card-theme p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <span class="fw-bold small text-uppercase text-secondary"><i class="bi bi-buildings text-primary me-2"></i>Stock Summary by Warehouse</span>
+                <a href="{{ url_for('warehouses.index') }}" class="small text-decoration-none">Manage &rarr;</a>
+            </div>
+            {% if warehouse_summary %}
+                <div class="list-group list-group-flush">
+                    {% for wh in warehouse_summary %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                        <div>
+                            <span class="fw-semibold">{{ wh.name }}</span>
+                            <span class="text-muted small">({{ wh.code }})</span>
+                            <div class="small text-muted">{{ wh.product_count }} distinct product lines</div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary fs-6">{{ wh.total_quantity }} Units</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-muted small text-center py-3">No warehouse stock data recorded.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Stock Summary by Category -->
+    <div class="col-lg-6">
+        <div class="card-theme p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <span class="fw-bold small text-uppercase text-secondary"><i class="bi bi-tags text-success me-2"></i>Stock Summary by Category</span>
+                <a href="{{ url_for('products.categories') }}" class="small text-decoration-none">Categories &rarr;</a>
+            </div>
+            {% if category_summary %}
+                <div class="list-group list-group-flush">
+                    {% for cat in category_summary %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                        <div>
+                            <span class="fw-semibold">{{ cat.name }}</span>
+                            <div class="small text-muted">{{ cat.product_count }} products registered</div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success fs-6">{{ cat.total_quantity }} Units</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-muted small text-center py-3">No category data recorded.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Dynamic Search & Filter Bar -->
+<div class="card-theme p-3 mb-4">
+    <form method="GET" action="{{ url_for('dashboard.index') }}" class="row g-2 align-items-center">
+        <!-- Document Type Filter -->
+        <div class="col-md-3">
+            <label class="form-label small mb-1">Document Type</label>
+            <select name="doc_type" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="all" {% if current_filters.doc_type == 'all' %}selected{% endif %}>All Types (Receipts, Deliveries, Transfers)</option>
+                <option value="receipt" {% if current_filters.doc_type == 'receipt' %}selected{% endif %}>Receipts</option>
+                <option value="delivery" {% if current_filters.doc_type == 'delivery' %}selected{% endif %}>Deliveries</option>
+                <option value="transfer" {% if current_filters.doc_type == 'transfer' %}selected{% endif %}>Internal Transfers</option>
+                <option value="adjustment" {% if current_filters.doc_type == 'adjustment' %}selected{% endif %}>Adjustments</option>
+            </select>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="col-md-2">
+            <label class="form-label small mb-1">Status</label>
+            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All Statuses</option>
+                <option value="draft" {% if current_filters.status == 'draft' %}selected{% endif %}>Draft</option>
+                <option value="waiting" {% if current_filters.status == 'waiting' %}selected{% endif %}>Waiting</option>
+                <option value="ready" {% if current_filters.status == 'ready' %}selected{% endif %}>Ready</option>
+                <option value="done" {% if current_filters.status == 'done' %}selected{% endif %}>Done</option>
+                <option value="canceled" {% if current_filters.status == 'canceled' %}selected{% endif %}>Canceled</option>
+            </select>
+        </div>
+
+        <!-- Warehouse / Location Filter -->
+        <div class="col-md-3">
+            <label class="form-label small mb-1">Warehouse / Location</label>
+            <select name="location_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">All Storage Locations</option>
+                {% for loc in internal_locations %}
+                <option value="{{ loc.id }}" {% if current_filters.location_id == loc.id %}selected{% endif %}>{{ loc.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="col-md-3">
+            <label class="form-label small mb-1">Reference / Partner Search</label>
+            <div class="input-group input-group-sm">
+                <input type="text" name="q" class="form-control" placeholder="Search reference, supplier, notes..." value="{{ current_filters.q }}">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+            </div>
+        </div>
+
+        <!-- Clear Filters -->
+        <div class="col-md-1 d-flex align-items-end">
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-sm btn-outline-secondary w-100" title="Clear Filters">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<!-- Operations & Ledger Double Column Layout -->
+<div class="row g-4">
+    <!-- Active Operations Stream -->
+    <div class="col-lg-8">
+        <div class="card-theme">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold"><i class="bi bi-activity text-primary me-2"></i>Stock Operations Feed</span>
+                <span class="badge bg-light text-dark border">{{ operations|length }} Records</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-custom table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Type</th>
+                            <th>Partner / Notes</th>
+                            <th>Locations</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if operations %}
+                            {% for op in operations %}
+                            <tr>
+                                <td>
+                                    <span class="fw-bold">{{ op.name }}</span>
+                                    <div class="small text-muted">{{ op.created_at.strftime('%b %d, %H:%M') }}</div>
+                                </td>
+                                <td>
+                                    {% if op.picking_type == 'receipt' %}
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-arrow-down-left"></i> Receipt</span>
+                                    {% elif op.picking_type == 'delivery' %}
+                                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary"><i class="bi bi-arrow-up-right"></i> Delivery</span>
+                                    {% elif op.picking_type == 'transfer' %}
+                                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning"><i class="bi bi-arrow-left-right"></i> Transfer</span>
+                                    {% else %}
+                                        <span class="badge bg-info bg-opacity-10 text-info border border-info"><i class="bi bi-sliders"></i> Adjustment</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">{{ op.partner_name or '-' }}</div>
+                                    {% if op.notes %}
+                                    <div class="small text-muted text-truncate" style="max-width: 180px;">{{ op.notes }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="small"><span class="text-muted">From:</span> {{ op.source_location.full_name }}</div>
+                                    <div class="small"><span class="text-muted">To:</span> {{ op.dest_location.full_name }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-status {{ op.badge_class }}">{{ op.status.upper() }}</span>
+                                </td>
+                                <td class="text-end">
+                                    {% if op.picking_type == 'receipt' %}
+                                        <a href="{{ url_for('receipts.detail', picking_id=op.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    {% elif op.picking_type == 'delivery' %}
+                                        <a href="{{ url_for('deliveries.detail', picking_id=op.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    {% elif op.picking_type == 'transfer' %}
+                                        <a href="{{ url_for('transfers.detail', picking_id=op.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    {% elif op.picking_type == 'adjustment' %}
+                                        <a href="{{ url_for('adjustments.detail', picking_id=op.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
+                                    No stock operations match the selected criteria.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Real-Time Stock Ledger Snapshot -->
+    <div class="col-lg-4">
+        <div class="card-theme mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold"><i class="bi bi-journal-text text-success me-2"></i>Live Stock Ledger</span>
+                <a href="{{ url_for('ledger.index') }}" class="small text-decoration-none">Full History &rarr;</a>
+            </div>
+            <div class="p-3">
+                {% if recent_ledger %}
+                    <ul class="list-unstyled mb-0">
+                        {% for entry in recent_ledger %}
+                        <li class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                            <div>
+                                <div class="fw-semibold small">{{ entry.product.name }}</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    {{ entry.location.full_name }} &bull; {{ entry.reference_document }}
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge {{ entry.badge_class }}">
+                                    {{ "%+g"|format(entry.quantity_change) }} {{ entry.product.uom }}
+                                </span>
+                                <div class="text-muted" style="font-size: 0.7rem;">Bal: {{ entry.balance_after }}</div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="text-center text-muted py-4 small">No ledger entries recorded yet.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions & Links -->
+        <div class="card-theme p-3">
+            <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge text-warning me-2"></i>Quick Actions</h6>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('products.create') }}" class="btn btn-sm btn-outline-dark text-start">
+                    <i class="bi bi-plus-circle me-2 text-primary"></i> Create New Product
+                </a>
+                <a href="{{ url_for('transfers.create') }}" class="btn btn-sm btn-outline-dark text-start">
+                    <i class="bi bi-arrow-left-right me-2 text-warning"></i> Internal Transfer
+                </a>
+                <a href="{{ url_for('adjustments.create') }}" class="btn btn-sm btn-outline-dark text-start">
+                    <i class="bi bi-sliders me-2 text-info"></i> Inventory Adjustment Audit
+                </a>
+                <a href="{{ url_for('warehouses.index') }}" class="btn btn-sm btn-outline-dark text-start">
+                    <i class="bi bi-buildings me-2 text-secondary"></i> Multi-Warehouse Settings
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

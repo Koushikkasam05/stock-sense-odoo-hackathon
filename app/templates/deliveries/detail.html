@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block page_title %}Delivery Order {{ picking.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a href="{{ url_for('deliveries.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <h4 class="fw-bold mb-0">{{ picking.name }}</h4>
+            <div class="text-muted small">
+                Customer: <span class="fw-semibold text-dark">{{ picking.partner_name }}</span> &bull; 
+                Source: <span class="fw-semibold text-dark">{{ picking.source_location.full_name }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge badge-status fs-6 {{ picking.badge_class }}">{{ picking.status.upper() }}</span>
+    </div>
+</div>
+
+<!-- Workflow Stepper / Status Control Bar -->
+{% if picking.status != 'done' and picking.status != 'canceled' %}
+<div class="card-theme p-3 mb-4 bg-light">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <span class="small fw-bold text-muted text-uppercase">Workflow Progression:</span>
+            <span class="badge {% if picking.status == 'draft' %}bg-secondary{% else %}bg-light text-muted border{% endif %}">1. Draft</span> &rarr;
+            <span class="badge {% if picking.status == 'waiting' %}bg-warning text-dark{% else %}bg-light text-muted border{% endif %}">2. Packing</span> &rarr;
+            <span class="badge {% if picking.status == 'ready' %}bg-info text-dark{% else %}bg-light text-muted border{% endif %}">3. Picked & Ready</span> &rarr;
+            <span class="badge bg-light text-muted border">4. Shipped (Done)</span>
+        </div>
+
+        <div class="d-flex gap-2">
+            {% if picking.status == 'draft' %}
+            <form method="POST" action="{{ url_for('deliveries.change_status', picking_id=picking.id) }}">
+                <input type="hidden" name="target_status" value="waiting">
+                <button type="submit" class="btn btn-sm btn-outline-warning">Mark as Packing</button>
+            </form>
+            {% elif picking.status == 'waiting' %}
+            <form method="POST" action="{{ url_for('deliveries.change_status', picking_id=picking.id) }}">
+                <input type="hidden" name="target_status" value="ready">
+                <button type="submit" class="btn btn-sm btn-info text-dark">Mark as Picked / Ready</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <!-- Main Items Table -->
+    <div class="col-lg-8">
+        <div class="card-theme mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold"><i class="bi bi-box-seam text-primary me-2"></i>Delivery Items</span>
+                <span class="badge bg-light text-dark border">{{ picking.moves|length }} Items</span>
+            </div>
+
+            <form method="POST" action="{{ url_for('deliveries.validate', picking_id=picking.id) }}">
+                <div class="table-responsive">
+                    <table class="table table-custom table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th>Demand</th>
+                                <th>Qty Shipped</th>
+                                <th>Stock Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for move in picking.moves %}
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">{{ move.product.name }}</div>
+                                    <div class="text-muted small">Category: {{ move.product.category.name if move.product.category else 'General' }}</div>
+                                </td>
+                                <td><code>{{ move.product.sku }}</code></td>
+                                <td class="fw-semibold">{{ move.initial_demand }} {{ move.product.uom }}</td>
+                                <td style="max-width: 140px;">
+                                    {% if picking.status != 'done' and picking.status != 'canceled' %}
+                                    <input type="number" step="any" min="0" class="form-control form-control-sm" name="qty_done_{{ move.id }}" value="{{ move.initial_demand }}">
+                                    {% else %}
+                                    <span class="fw-bold text-success">{{ move.quantity_done }} {{ move.product.uom }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if picking.status == 'done' %}
+                                    <span class="badge bg-success">Dispatched</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-dark border">
+                                        Loc Stock: {{ move.product.total_stock }} {{ move.product.uom }}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if picking.status != 'done' and picking.status != 'canceled' %}
+                <div class="p-3 bg-light border-top d-flex justify-content-end gap-2">
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold">
+                        <i class="bi bi-send-check me-1"></i> Validate & Ship (Deduct Stock)
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Metadata & Audit Sidebar -->
+    <div class="col-lg-4">
+        <div class="card-theme p-3 mb-4">
+            <h6 class="fw-bold mb-3 border-bottom pb-2">Dispatch Details</h6>
+            <ul class="list-group list-group-flush small">
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Source Storage:</span>
+                    <span class="fw-semibold">{{ picking.source_location.full_name }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Destination:</span>
+                    <span class="fw-semibold">{{ picking.dest_location.full_name }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Created On:</span>
+                    <span>{{ picking.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                </li>
+                {% if picking.date_done %}
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Shipped On:</span>
+                    <span class="text-success fw-semibold">{{ picking.date_done.strftime('%Y-%m-%d %H:%M') }}</span>
+                </li>
+                {% endif %}
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-muted">Dispatcher:</span>
+                    <span>{{ picking.creator.full_name if picking.creator else '-' }}</span>
+                </li>
+            </ul>
+
+            {% if picking.notes %}
+            <div class="mt-3 pt-2 border-top">
+                <span class="text-muted small fw-semibold">Order / Notes:</span>
+                <p class="small text-secondary mb-0 mt-1">{{ picking.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

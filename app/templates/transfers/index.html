@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block page_title %}Internal Stock Transfers{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <p class="text-muted small mb-0">Rebalance inventory across warehouses and storage locations without altering total company stock.</p>
+    </div>
+    <a href="{{ url_for('transfers.create') }}" class="btn btn-warning btn-sm text-dark fw-semibold">
+        <i class="bi bi-plus-lg me-1"></i> New Transfer
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card-theme p-3 mb-3">
+    <form method="GET" action="{{ url_for('transfers.index') }}" class="row g-2 align-items-center">
+        <div class="col-md-5">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" class="form-control" placeholder="Search transfer number..." value="{{ q }}">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="all" {% if current_status == 'all' %}selected{% endif %}>All Statuses</option>
+                <option value="draft" {% if current_status == 'draft' %}selected{% endif %}>Draft</option>
+                <option value="ready" {% if current_status == 'ready' %}selected{% endif %}>Ready</option>
+                <option value="done" {% if current_status == 'done' %}selected{% endif %}>Done (Executed)</option>
+                <option value="canceled" {% if current_status == 'canceled' %}selected{% endif %}>Canceled</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-outline-primary w-100">Filter</button>
+            <a href="{{ url_for('transfers.index') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Transfers Table -->
+<div class="card-theme">
+    <div class="table-responsive">
+        <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Transfer #</th>
+                    <th>Source Location</th>
+                    <th>Destination Location</th>
+                    <th>Scheduled Date</th>
+                    <th>Total Items</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if transfers %}
+                    {% for t in transfers %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('transfers.detail', picking_id=t.id) }}" class="fw-bold text-decoration-none text-dark">
+                                {{ t.name }}
+                            </a>
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ t.source_location.full_name }}</span></td>
+                        <td><span class="badge bg-light text-dark border">{{ t.dest_location.full_name }}</span></td>
+                        <td class="small">{{ t.scheduled_date.strftime('%Y-%m-%d') if t.scheduled_date else '-' }}</td>
+                        <td>{{ t.moves|length }} items</td>
+                        <td>
+                            <span class="badge badge-status {{ t.badge_class }}">{{ t.status.upper() }}</span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('transfers.detail', picking_id=t.id) }}" class="btn btn-sm btn-outline-primary">
+                                View / Execute
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-arrow-left-right fs-1 d-block mb-2 text-secondary"></i>
+                            No internal transfers found.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
