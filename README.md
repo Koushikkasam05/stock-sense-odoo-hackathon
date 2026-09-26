@@ -153,7 +153,7 @@ erDiagram
     LOCATIONS ||--o{ STOCK_LEDGER_ENTRIES : records
 ```
 
-### Core Tables
+### Core table
 1. `users`: User identity, Bcrypt password hashes, and roles (`inventory_manager`, `warehouse_staff`).
 2. `otp_tokens`: Short-lived single-use verification codes for password resets.
 3. `product_categories`: Categorization grouping for SKU catalogue.
@@ -168,8 +168,7 @@ erDiagram
 
 ---
 
-## 8. Installation
-
+## 8.  Installation
 ### Prerequisites
 - Python 3.10+ (Python 3.12 recommended)
 - Git
