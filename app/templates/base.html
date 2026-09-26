@@ -21,7 +21,7 @@
     {% if current_user.is_authenticated %}
     <div class="app-wrapper">
         <!-- Sidebar Navigation -->
-        <aside class="sidebar" id="app-sidebar">
+        <aside class="sidebar" id="app-sidebar" aria-label="Primary navigation">
             <a href="{{ url_for('dashboard.index') }}" class="brand">
                 <i class="bi bi-boxes text-info fs-4"></i>
                 <span class="fw-bold tracking-tight">StockSense</span>
@@ -131,13 +131,14 @@
                 </a>
             </div>
         </aside>
+        <button class="sidebar-backdrop" type="button" onclick="toggleSidebar()" aria-label="Close navigation"></button>
 
         <!-- Main Content Area -->
         <div class="main-content">
             <!-- Top Navbar -->
             <header class="top-navbar sticky-top">
                 <div class="d-flex align-items-center gap-3">
-                    <button class="btn btn-sm btn-outline-secondary d-md-none" type="button" onclick="toggleSidebar()">
+                    <button class="btn btn-sm btn-outline-secondary d-md-none" id="sidebar-toggle" type="button" onclick="toggleSidebar()" aria-controls="app-sidebar" aria-expanded="false" aria-label="Open navigation">
                         <i class="bi bi-list fs-5"></i>
                     </button>
                     <h5 class="mb-0 fw-bold d-none d-sm-block">{% block page_title %}Dashboard{% endblock %}</h5>
@@ -242,7 +243,9 @@
                 {% endwith %}
 
                 <!-- Content Block -->
-                {% block content %}{% endblock %}
+                <div class="page-content">
+                    {% block content %}{% endblock %}
+                </div>
             </div>
         </div>
     </div>
@@ -328,7 +331,15 @@
     function toggleSidebar() {
         const sidebar = document.getElementById('app-sidebar');
         if (sidebar) {
-            sidebar.classList.toggle('show');
+            const isOpen = sidebar.classList.toggle('show');
+            document.querySelector('.app-wrapper')?.classList.toggle('sidebar-open', isOpen);
+            document.body.classList.toggle('sidebar-open', isOpen);
+
+            const toggleButton = document.getElementById('sidebar-toggle');
+            if (toggleButton) {
+                toggleButton.setAttribute('aria-expanded', String(isOpen));
+                toggleButton.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+            }
         }
     }
     </script>

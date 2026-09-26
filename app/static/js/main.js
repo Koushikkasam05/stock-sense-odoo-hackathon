@@ -110,6 +110,26 @@
     }
 
     function initPageAnimations() {
+        document.body.classList.add('page-motion-ready');
+
+        const pageSections = document.querySelectorAll('.page-content > *');
+        if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            const sectionObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                });
+            }, { threshold: 0.08, rootMargin: '0px 0px -24px 0px' });
+
+            pageSections.forEach((section, index) => {
+                section.classList.add('page-reveal');
+                section.style.animationDelay = `${Math.min(index * 0.07, 0.28)}s`;
+                sectionObserver.observe(section);
+            });
+        }
+
         // Automatically stagger cards, table rows, and alert containers
         const cards = document.querySelectorAll('.kpi-card, .card-theme, .auth-card');
         cards.forEach((card, index) => {
@@ -331,6 +351,22 @@
         });
     }
 
+    function initMobileSidebar() {
+        document.addEventListener('keydown', (event) => {
+            const sidebar = document.getElementById('app-sidebar');
+            if (event.key === 'Escape' && sidebar && sidebar.classList.contains('show')) {
+                window.toggleSidebar();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            const sidebar = document.getElementById('app-sidebar');
+            if (window.innerWidth >= 768 && sidebar && sidebar.classList.contains('show')) {
+                window.toggleSidebar();
+            }
+        });
+    }
+
     // --------------------------------------------------------------------------
     // 9. Chart.js Global Enterprise Theme
     // --------------------------------------------------------------------------
@@ -361,6 +397,7 @@
         initAdjustmentCalculator();
         initCommandPalette();
         initBackToTop();
+        initMobileSidebar();
     });
 
 })();

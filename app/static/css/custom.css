@@ -111,6 +111,28 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
+@keyframes pageEnter {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes sidebarEnter {
+    from {
+        opacity: 0;
+        transform: translateX(-12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
 @keyframes scaleIn {
     from {
         opacity: 0;
@@ -166,6 +188,37 @@ h1, h2, h3, h4, h5, h6 {
 .stagger-3 { animation-delay: 0.15s; }
 .stagger-4 { animation-delay: 0.20s; }
 .stagger-5 { animation-delay: 0.25s; }
+
+.page-motion-ready .sidebar {
+    animation: sidebarEnter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.page-motion-ready .top-navbar {
+    animation: pageEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.page-motion-ready .auth-wrapper {
+    animation: pageEnter 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.page-reveal.is-visible {
+    animation: fadeInUp 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.sidebar-backdrop {
+    display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
 
 /* ==========================================================================
    Enterprise Layout: App Wrapper & Sidebar
@@ -833,6 +886,123 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid var(--border-subtle) !important;
     box-shadow: var(--shadow-lg) !important;
     animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 767.98px) {
+    .app-wrapper {
+        min-height: 100vh;
+        min-height: 100dvh;
+    }
+
+    .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: min(280px, 86vw);
+        height: 100vh;
+        height: 100dvh;
+        transform: translateX(-100%);
+        visibility: hidden;
+        pointer-events: none;
+        z-index: 1045;
+        transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), visibility 0.28s;
+    }
+
+    .sidebar.show {
+        transform: translateX(0);
+        visibility: visible;
+        pointer-events: auto;
+    }
+
+    .sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        background: rgba(3, 7, 18, 0.58);
+        opacity: 0;
+        visibility: hidden;
+        z-index: 1040;
+        transition: opacity 0.24s ease, visibility 0.24s;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .app-wrapper.sidebar-open .sidebar-backdrop {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    body.sidebar-open {
+        overflow: hidden;
+    }
+
+    .main-content {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .top-navbar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.55rem 0.75rem;
+    }
+
+    .top-navbar > .d-flex:first-child {
+        order: 1;
+    }
+
+    .top-navbar > .d-flex:last-child {
+        order: 2;
+        flex-shrink: 0;
+    }
+
+    .top-navbar > .position-relative {
+        order: 3;
+        flex: 0 0 100%;
+        max-width: none !important;
+        margin: 0 !important;
+    }
+
+    .top-navbar .form-control {
+        min-width: 0;
+    }
+
+    .main-content > .container-fluid {
+        padding-right: 0.75rem !important;
+        padding-left: 0.75rem !important;
+    }
+
+    .page-content,
+    .table-responsive {
+        max-width: 100%;
+    }
+
+    .auth-wrapper {
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 1rem 0.75rem;
+    }
+
+    .auth-header {
+        padding: 1.5rem 1rem;
+    }
+
+    .auth-card {
+        border-radius: 1rem;
+    }
+
+    .auth-card .form-control,
+    .auth-card .form-select,
+    .auth-card .btn {
+        min-height: 44px;
+    }
+
+    .table-custom thead th,
+    .table-custom tbody td {
+        padding: 0.75rem 0.85rem;
+    }
 }
 
 @media print {
