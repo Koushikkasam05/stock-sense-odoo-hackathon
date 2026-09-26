@@ -266,7 +266,7 @@ To populate realistic multi-warehouse demo data (warehouses, location hierarchie
 python seed.py
 ```
 
-### Default Demo Credentials:
+### Default Demo Credentials
 - **Inventory Manager**:
   - Username: `manager`
   - Password: `password123`
