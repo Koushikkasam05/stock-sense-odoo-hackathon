@@ -66,6 +66,27 @@ def test_user_authentication(app):
         assert u4 is None
 
 
+def test_reset_password_rejects_weak_password_even_when_long_enough(app):
+    with app.app_context():
+        user = AuthService.register_user(
+            username='weakresetuser',
+            email='weakreset@test.com',
+            password='oldpassword',
+            full_name='Weak Reset User'
+        )
+
+        success, msg, otp = AuthService.request_password_reset_otp('weakreset@test.com')
+        assert success is True
+        assert otp is not None
+
+        reset_ok, reset_msg = AuthService.verify_and_reset_password('weakreset@test.com', otp, 'weakpassword')
+        assert reset_ok is False
+        assert 'must contain' in reset_msg.lower() or 'complexity' in reset_msg.lower() or 'invalid' in reset_msg.lower()
+
+        current_user = AuthService.authenticate_user('weakreset@test.com', 'oldpassword')
+        assert current_user is not None
+
+
 def test_otp_password_reset_and_expiration(app):
     with app.app_context():
         user = AuthService.register_user(

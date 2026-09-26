@@ -289,7 +289,7 @@ class AuthService:
         # Verify password complexity if token is valid
         if new_password:
             valid, msg = AuthService.validate_password_complexity(new_password)
-            if not valid and len(new_password) < 6:
+            if not valid:
                 return False, msg
 
         # Mark OTP as used and update user password
