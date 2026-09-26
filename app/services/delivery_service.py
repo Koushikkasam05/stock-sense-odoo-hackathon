@@ -151,4 +151,13 @@ class DeliveryService:
         picking.validated_by_id = user_id
 
         db.session.commit()
+
+        from app.services.audit_service import AuditService
+        AuditService.log_event(
+            action='STOCK_DELIVERED',
+            resource_type='stock_picking',
+            resource_id=str(picking.id),
+            details=f"Delivery {picking.name} validated to {picking.partner_name or 'Customer'} from {picking.source_location.full_name}",
+            user_id=user_id
+        )
         return picking

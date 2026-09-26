@@ -130,6 +130,14 @@ class WarehouseService:
         )
         db.session.add(loc)
         db.session.commit()
+
+        from app.services.audit_service import AuditService
+        AuditService.log_event(
+            action='WAREHOUSE_CREATED',
+            resource_type='warehouse',
+            resource_id=str(wh.id),
+            details=f"Created warehouse {wh.name} ({wh.code})"
+        )
         return wh
 
     @staticmethod
@@ -142,6 +150,14 @@ class WarehouseService:
         wh.address = address.strip() if address else None
         wh.is_active = is_active
         db.session.commit()
+
+        from app.services.audit_service import AuditService
+        AuditService.log_event(
+            action='WAREHOUSE_UPDATED',
+            resource_type='warehouse',
+            resource_id=str(wh.id),
+            details=f"Updated warehouse {wh.name} ({wh.code})"
+        )
         return wh
 
     @staticmethod

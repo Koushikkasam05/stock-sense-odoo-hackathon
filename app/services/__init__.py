@@ -7,6 +7,10 @@ from app.services.delivery_service import DeliveryService
 from app.services.transfer_service import TransferService
 from app.services.adjustment_service import AdjustmentService
 from app.services.dashboard_service import DashboardService
+from app.services.audit_service import AuditService
+from app.services.sms_service import SMSService
+from app.services.movement_service import MovementAnalysisService
+from app.services.demand_service import DemandAnalysisService
 
 __all__ = [
     'StockService',
@@ -19,5 +23,9 @@ __all__ = [
     'DeliveryService',
     'TransferService',
     'AdjustmentService',
-    'DashboardService'
+    'DashboardService',
+    'AuditService',
+    'SMSService',
+    'MovementAnalysisService',
+    'DemandAnalysisService'
 ]

@@ -9,6 +9,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    mobile_number = db.Column(db.String(20), unique=True, nullable=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     full_name = db.Column(db.String(100), nullable=False)
     role = db.Column(db.String(32), nullable=False, default='warehouse_staff')  # 'inventory_manager' or 'warehouse_staff'
@@ -20,6 +21,7 @@ class User(UserMixin, db.Model):
     created_pickings = db.relationship('StockPicking', foreign_keys='StockPicking.created_by_id', backref='creator', lazy='dynamic')
     validated_pickings = db.relationship('StockPicking', foreign_keys='StockPicking.validated_by_id', backref='validator', lazy='dynamic')
     ledger_entries = db.relationship('StockLedgerEntry', backref='user', lazy='dynamic')
+    audit_logs = db.relationship('AuditLog', backref='user', lazy='dynamic')
 
     def set_password(self, password: str) -> None:
         """Hash and set user password using bcrypt."""

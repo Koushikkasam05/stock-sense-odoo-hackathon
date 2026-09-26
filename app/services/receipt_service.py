@@ -111,4 +111,13 @@ class ReceiptService:
         picking.validated_by_id = user_id
 
         db.session.commit()
+
+        from app.services.audit_service import AuditService
+        AuditService.log_event(
+            action='STOCK_RECEIVED',
+            resource_type='stock_picking',
+            resource_id=str(picking.id),
+            details=f"Receipt {picking.name} validated at {picking.dest_location.full_name} from {picking.partner_name or 'Supplier'}",
+            user_id=user_id
+        )
         return picking

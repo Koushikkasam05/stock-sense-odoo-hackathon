@@ -2,10 +2,12 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from app.extensions import db
 from app.models.product import Product, ProductCategory, StockQuant
-from app.models.warehouse import Location
+from app.models.warehouse import Warehouse, Location
 from app.services.product_service import ProductService
 from app.services.warehouse_service import WarehouseService
 from app.services.dashboard_service import DashboardService
+from app.services.movement_service import MovementAnalysisService
+from app.services.demand_service import DemandAnalysisService
 from app.utils.decorators import manager_required
 
 products_bp = Blueprint('products', __name__, url_prefix='/products')
@@ -34,7 +36,9 @@ def index():
     if stock_status != 'all':
         filtered = []
         for p in products:
-            if stock_status == 'low_stock' and p.is_low_stock:
+            if stock_status == 'low_stock' and (p.is_low_stock or p.is_critical_stock):
+                filtered.append(p)
+            elif stock_status == 'critical' and p.is_critical_stock:
                 filtered.append(p)
             elif stock_status == 'out_of_stock' and p.is_out_of_stock:
                 filtered.append(p)
@@ -42,11 +46,21 @@ def index():
                 filtered.append(p)
         products = filtered
 
+    # Attach movement & demand analysis to products list
+    products_with_analysis = []
+    for p in products:
+        products_with_analysis.append({
+            'product': p,
+            'movement': MovementAnalysisService.get_movement_status(p.id),
+            'demand': DemandAnalysisService.get_demand_status(p.id)
+        })
+
     categories = ProductCategory.query.order_by(ProductCategory.name.asc()).all()
 
     return render_template(
         'products/index.html',
         products=products,
+        products_with_analysis=products_with_analysis,
         categories=categories,
         current_filters={
             'category_id': category_id,
@@ -78,7 +92,7 @@ def export_csv():
             p.uom,
             p.total_stock,
             p.min_stock_level,
-            p.stock_status.upper(),
+            p.stock_status_display,
             'Active' if p.is_active else 'Inactive'
         ])
 
@@ -145,6 +159,57 @@ def detail(product_id: int):
         Location.location_type == 'internal'
     ).all()
 
+    # Calculate warehouse distribution table
+    warehouse_distribution = []
+    total_qty = 0.0
+    total_reserved = 0.0
+    total_available = 0.0
+    warehouses_present = set()
+
+    for q in quants:
+        loc = q.location
+        wh = loc.warehouse
+        if wh:
+            warehouses_present.add(wh.name)
+        
+        qty = q.quantity
+        res = q.reserved_quantity
+        avail = q.available_quantity
+
+        total_qty += qty
+        total_reserved += res
+        total_available += avail
+
+        # Local stock status
+        if qty <= 0:
+            loc_status = 'Out of Stock'
+            loc_badge = 'badge bg-dark text-white'
+        elif qty <= (product.min_stock_level * 0.25):
+            loc_status = 'Critical'
+            loc_badge = 'badge bg-danger text-white'
+        elif qty <= product.min_stock_level:
+            loc_status = 'Low Stock'
+            loc_badge = 'badge bg-warning text-dark'
+        else:
+            loc_status = 'In Stock'
+            loc_badge = 'badge bg-success'
+
+        warehouse_distribution.append({
+            'warehouse_name': wh.name if wh else 'Unassigned',
+            'warehouse_code': wh.code if wh else 'N/A',
+            'location_name': loc.name,
+            'location_full': loc.full_name,
+            'quantity': qty,
+            'reserved': res,
+            'available': avail,
+            'status': loc_status,
+            'badge': loc_badge
+        })
+
+    # Movement and Demand Analysis
+    movement_info = MovementAnalysisService.get_movement_status(product.id)
+    demand_info = DemandAnalysisService.get_demand_status(product.id)
+
     # Get product's recent ledger history
     ledger_entries = DashboardService.filter_ledger_entries(product_id=product.id, limit=30)
 
@@ -152,6 +217,12 @@ def detail(product_id: int):
         'products/detail.html',
         product=product,
         quants=quants,
+        warehouse_distribution=warehouse_distribution,
+        warehouses_count=len(warehouses_present),
+        total_reserved=total_reserved,
+        total_available=total_available,
+        movement_info=movement_info,
+        demand_info=demand_info,
         ledger_entries=ledger_entries
     )
 

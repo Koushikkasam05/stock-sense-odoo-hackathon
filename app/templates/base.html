@@ -3,11 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}StockSense - Modern Inventory Management{% endblock %}</title>
+    <title>{% block title %}StockSense - Enterprise Inventory Management{% endblock %}</title>
+    <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <!-- Custom Stylesheet -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
@@ -15,17 +21,24 @@
     {% if current_user.is_authenticated %}
     <div class="app-wrapper">
         <!-- Sidebar Navigation -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="app-sidebar">
             <a href="{{ url_for('dashboard.index') }}" class="brand">
                 <i class="bi bi-boxes text-info fs-4"></i>
-                <span>StockSense</span>
+                <span class="fw-bold tracking-tight">StockSense</span>
             </a>
+
             <ul class="sidebar-nav">
                 <li class="nav-header">Overview</li>
                 <li class="nav-item">
                     <a href="{{ url_for('dashboard.index') }}" class="nav-link {% if request.blueprint == 'dashboard' and request.endpoint == 'dashboard.index' %}active{% endif %}">
                         <i class="bi bi-speedometer2"></i>
                         <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('dashboard.analytics_view') }}" class="nav-link {% if request.endpoint == 'dashboard.analytics_view' %}active{% endif %}">
+                        <i class="bi bi-pie-chart-fill text-info"></i>
+                        <span>Visual Analytics</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -38,11 +51,18 @@
                     </a>
                 </li>
 
-                <li class="nav-header">Master Data</li>
+                <li class="nav-header">Master Inventory</li>
                 <li class="nav-item">
-                    <a href="{{ url_for('products.index') }}" class="nav-link {% if request.blueprint == 'products' and request.endpoint != 'products.categories' %}active{% endif %}">
+                    <a href="{{ url_for('products.index') }}" class="nav-link {% if request.blueprint == 'products' and request.endpoint != 'products.categories' and request.endpoint != 'products.create' %}active{% endif %}">
                         <i class="bi bi-box-seam"></i>
                         <span>Products</span>
+                    </a>
+                </li>
+                {% if current_user.is_manager %}
+                <li class="nav-item">
+                    <a href="{{ url_for('products.create') }}" class="nav-link {% if request.endpoint == 'products.create' %}active{% endif %}">
+                        <i class="bi bi-plus-square text-success"></i>
+                        <span>Add Product</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -51,6 +71,7 @@
                         <span>Categories</span>
                     </a>
                 </li>
+                {% endif %}
                 <li class="nav-item">
                     <a href="{{ url_for('warehouses.index') }}" class="nav-link {% if request.blueprint == 'warehouses' %}active{% endif %}">
                         <i class="bi bi-buildings"></i>
@@ -80,7 +101,7 @@
                 <li class="nav-item">
                     <a href="{{ url_for('adjustments.index') }}" class="nav-link {% if request.blueprint == 'adjustments' %}active{% endif %}">
                         <i class="bi bi-sliders text-info"></i>
-                        <span>Inventory Adjustments</span>
+                        <span>Stock Adjustments</span>
                     </a>
                 </li>
 
@@ -88,7 +109,7 @@
                 <li class="nav-item">
                     <a href="{{ url_for('ledger.index') }}" class="nav-link {% if request.blueprint == 'ledger' %}active{% endif %}">
                         <i class="bi bi-journal-text text-light"></i>
-                        <span>Stock Movement Ledger</span>
+                        <span>Movement Ledger</span>
                     </a>
                 </li>
             </ul>
@@ -114,12 +135,37 @@
         <!-- Main Content Area -->
         <div class="main-content">
             <!-- Top Navbar -->
-            <header class="top-navbar">
+            <header class="top-navbar sticky-top">
                 <div class="d-flex align-items-center gap-3">
-                    <h5 class="mb-0 fw-bold">{% block page_title %}Dashboard{% endblock %}</h5>
+                    <button class="btn btn-sm btn-outline-secondary d-md-none" type="button" onclick="toggleSidebar()">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
+                    <h5 class="mb-0 fw-bold d-none d-sm-block">{% block page_title %}Dashboard{% endblock %}</h5>
                 </div>
-                <div class="d-flex align-items-center gap-3">
-                    <a href="{{ url_for('notifications.index') }}" class="btn btn-outline-secondary position-relative btn-sm" title="System Notifications">
+
+                <!-- Global Search Box in Center -->
+                <div class="mx-3 flex-grow-1 position-relative" style="max-width: 480px;">
+                    <form action="{{ url_for('search.index') }}" method="GET" class="position-relative">
+                        <div class="input-group input-group-sm rounded-3 overflow-hidden border">
+                            <span class="input-group-text bg-light border-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control bg-light border-0 ps-0" id="global-search-input" name="q" placeholder="Global search: products, SKU, warehouses..." autocomplete="off" onkeyup="handleGlobalSearch(this.value)">
+                            <span class="input-group-text bg-light border-0 text-muted small d-none d-lg-inline-flex py-0 px-2"><kbd class="bg-white text-secondary border shadow-xs" style="font-size: 0.65rem; padding: 2px 5px; border-radius: 4px;">Ctrl K</kbd></span>
+                        </div>
+                    </form>
+                    <!-- Auto-complete Results Dropdown -->
+                    <div id="search-results-dropdown" class="dropdown-menu w-100 shadow-lg border-0 mt-1 py-2 d-none" style="position: absolute; z-index: 1050; max-height: 380px; overflow-y: auto;">
+                        <div id="search-dropdown-content"></div>
+                    </div>
+                </div>
+
+                <!-- Right Side Actions & Profile -->
+                <div class="d-flex align-items-center gap-2">
+                    <div class="enterprise-health-badge d-none d-xl-inline-flex me-1">
+                        <span class="pulse-dot-emerald"></span>
+                        <span>Systems Operational</span>
+                    </div>
+
+                    <a href="{{ url_for('notifications.index') }}" class="btn btn-outline-secondary position-relative btn-sm" title="Notifications">
                         <i class="bi bi-bell"></i>
                         {% if global_unread_notifications > 0 %}
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary">
@@ -127,7 +173,8 @@
                         </span>
                         {% endif %}
                     </a>
-                    <a href="{{ url_for('dashboard.alerts_view') }}" class="btn btn-outline-warning position-relative btn-sm text-dark" title="Stock Shortage Alerts">
+
+                    <a href="{{ url_for('dashboard.alerts_view') }}" class="btn btn-outline-warning position-relative btn-sm text-dark d-none d-sm-inline-flex" title="Shortage Alerts">
                         <i class="bi bi-exclamation-triangle"></i>
                         {% if global_alert_count > 0 %}
                         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
@@ -135,17 +182,17 @@
                         </span>
                         {% endif %}
                     </a>
-                    <a href="{{ url_for('receipts.create') }}" class="btn btn-sm btn-success">
-                        <i class="bi bi-plus-lg me-1"></i> New Receipt
+
+                    {% if current_user.is_manager %}
+                    <a href="{{ url_for('products.create') }}" class="btn btn-sm btn-outline-primary d-none d-lg-inline-flex">
+                        <i class="bi bi-plus-lg me-1"></i> Add Product
                     </a>
-                    <a href="{{ url_for('deliveries.create') }}" class="btn btn-sm btn-primary">
-                        <i class="bi bi-box-arrow-up-right me-1"></i> New Delivery
-                    </a>
+                    {% endif %}
 
                     <!-- User Account Dropdown -->
-                    <div class="dropdown border-start ps-3">
-                        <button class="btn btn-sm btn-light dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 0.75rem; font-weight: 600;">
+                    <div class="dropdown ps-2">
+                        <button class="btn btn-sm btn-light dropdown-toggle d-flex align-items-center gap-2 border" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.75rem; font-weight: 600;">
                                 {{ current_user.full_name[:2].upper() }}
                             </div>
                             <span class="d-none d-md-inline fw-semibold small">{{ current_user.full_name }}</span>
@@ -154,7 +201,7 @@
                             <li class="px-3 py-1">
                                 <div class="fw-bold small">{{ current_user.full_name }}</div>
                                 <div class="text-muted small">{{ current_user.email }}</div>
-                                <span class="badge bg-secondary mt-1">{{ current_user.role_display }}</span>
+                                <span class="badge {% if current_user.is_manager %}bg-primary{% else %}bg-secondary{% endif %} mt-1">{{ current_user.role_display }}</span>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
@@ -211,6 +258,157 @@
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+    let searchDebounceTimer;
+    function handleGlobalSearch(query) {
+        clearTimeout(searchDebounceTimer);
+        const dropdown = document.getElementById('search-results-dropdown');
+        const content = document.getElementById('search-dropdown-content');
+
+        if (!query || query.trim().length < 2) {
+            dropdown.classList.add('d-none');
+            return;
+        }
+
+        searchDebounceTimer = setTimeout(() => {
+            fetch(`/search/api?q=${encodeURIComponent(query.trim())}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.total_found === 0) {
+                        content.innerHTML = `<div class="p-3 text-muted text-center small"><i class="bi bi-search me-1"></i> No matching products or warehouses found.</div>`;
+                    } else {
+                        let html = '';
+                        if (data.products && data.products.length > 0) {
+                            html += `<h6 class="dropdown-header text-uppercase fw-bold text-primary small"><i class="bi bi-box-seam me-1"></i> Products</h6>`;
+                            data.products.forEach(p => {
+                                html += `<a href="${p.url}" class="dropdown-item d-flex justify-content-between align-items-center py-2">
+                                    <div>
+                                        <div class="fw-semibold small">${p.name} <code class="ms-1">${p.sku}</code></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">${p.category}</div>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-light text-dark border">${p.stock} ${p.uom}</span>
+                                    </div>
+                                </a>`;
+                            });
+                        }
+                        if (data.warehouses && data.warehouses.length > 0) {
+                            if (html) html += `<li><hr class="dropdown-divider"></li>`;
+                            html += `<h6 class="dropdown-header text-uppercase fw-bold text-info small"><i class="bi bi-buildings me-1"></i> Warehouses</h6>`;
+                            data.warehouses.forEach(w => {
+                                html += `<a href="${w.url}" class="dropdown-item d-flex justify-content-between align-items-center py-2">
+                                    <div>
+                                        <div class="fw-semibold small">${w.name} <span class="badge bg-secondary ms-1">${w.code}</span></div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">${w.address}</div>
+                                    </div>
+                                    <i class="bi bi-arrow-right text-muted small"></i>
+                                </a>`;
+                            });
+                        }
+                        html += `<li><hr class="dropdown-divider"></li><a href="/search?q=${encodeURIComponent(query.trim())}" class="dropdown-item text-center text-primary fw-semibold small py-1">View all search results <i class="bi bi-arrow-right"></i></a>`;
+                        content.innerHTML = html;
+                    }
+                    dropdown.classList.remove('d-none');
+                })
+                .catch(() => {
+                    dropdown.classList.add('d-none');
+                });
+        }, 250);
+    }
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('search-results-dropdown');
+        const input = document.getElementById('global-search-input');
+        if (dropdown && !dropdown.contains(e.target) && e.target !== input) {
+            dropdown.classList.add('d-none');
+        }
+    });
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('app-sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('show');
+        }
+    }
+    </script>
+
+    <!-- Enterprise Command Palette Modal (Ctrl + K) -->
+    <div class="modal fade command-palette-modal" id="commandPaletteModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 580px;">
+            <div class="modal-content p-2">
+                <div class="p-3 border-bottom d-flex align-items-center gap-2">
+                    <i class="bi bi-terminal text-primary fs-5"></i>
+                    <input type="text" class="form-control border-0 shadow-none ps-1 fs-6" id="command-palette-input" placeholder="Type a command or jump to page..." autofocus>
+                    <span class="badge bg-light text-muted border">ESC</span>
+                </div>
+                <div class="p-2" id="command-palette-results" style="max-height: 380px; overflow-y: auto;">
+                    <div class="text-uppercase text-muted px-3 py-1" style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;">Quick Navigation</div>
+                    <a href="{{ url_for('dashboard.index') }}" class="command-item">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-speedometer2 text-primary"></i> Dashboard</span>
+                        <span class="badge bg-light text-dark border font-mono small">G D</span>
+                    </a>
+                    <a href="{{ url_for('dashboard.analytics_view') }}" class="command-item">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-pie-chart-fill text-info"></i> Visual Analytics</span>
+                        <span class="badge bg-light text-dark border font-mono small">G A</span>
+                    </a>
+                    <a href="{{ url_for('products.index') }}" class="command-item">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-box-seam text-secondary"></i> Master Products</span>
+                        <span class="badge bg-light text-dark border font-mono small">G P</span>
+                    </a>
+                    <a href="{{ url_for('warehouses.index') }}" class="command-item">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-buildings text-warning"></i> Warehouses & Locations</span>
+                        <span class="badge bg-light text-dark border font-mono small">G W</span>
+                    </a>
+                    <a href="{{ url_for('receipts.index') }}" class="command-item">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-arrow-down-left-circle text-success"></i> Receipts (Inbound)</span>
+                        <span class="badge bg-light text-dark border font-mono small">G R</span>
+                    </a>
+                    <a href="{{ url_for('deliveries.index') }}" class="command-item">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-arrow-up-right-circle text-primary"></i> Delivery Orders (Outbound)</span>
+                        <span class="badge bg-light text-dark border font-mono small">G O</span>
+                    </a>
+                    <a href="{{ url_for('transfers.index') }}" class="command-item">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-arrow-left-right text-warning"></i> Inter-Location Transfers</span>
+                        <span class="badge bg-light text-dark border font-mono small">G T</span>
+                    </a>
+                    <a href="{{ url_for('ledger.index') }}" class="command-item">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-journal-text text-dark"></i> Immutable Movement Ledger</span>
+                        <span class="badge bg-light text-dark border font-mono small">G L</span>
+                    </a>
+
+                    {% if current_user.is_manager %}
+                    <div class="text-uppercase text-muted px-3 pt-3 pb-1" style="font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;">Management Actions</div>
+                    <a href="{{ url_for('products.create') }}" class="command-item text-primary fw-semibold">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-plus-circle text-primary"></i> Create New Product</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Action</span>
+                    </a>
+                    <a href="{{ url_for('receipts.create') }}" class="command-item text-success fw-semibold">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-box-arrow-in-down text-success"></i> Create Supplier Receipt</span>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success">Action</span>
+                    </a>
+                    <a href="{{ url_for('deliveries.create') }}" class="command-item text-info fw-semibold">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-truck text-info"></i> Create Customer Delivery</span>
+                        <span class="badge bg-info bg-opacity-10 text-info border border-info">Action</span>
+                    </a>
+                    <a href="{{ url_for('adjustments.create') }}" class="command-item text-warning fw-semibold">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-sliders text-warning"></i> Reconcile Physical Stock</span>
+                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning">Action</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 2000;" id="stocksense-toast-container"></div>
+
+    <!-- Back to Top Button -->
+    <button id="back-to-top-btn" class="btn btn-primary rounded-circle shadow-lg position-fixed" style="bottom: 24px; right: 24px; width: 44px; height: 44px; display: none; z-index: 1040; opacity: 0; transition: opacity 0.3s ease, transform 0.2s ease;" title="Back to top">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+
     {% block scripts %}{% endblock %}
 </body>
 </html>

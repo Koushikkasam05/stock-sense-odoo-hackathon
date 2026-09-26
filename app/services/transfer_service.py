@@ -128,4 +128,13 @@ class TransferService:
         picking.validated_by_id = user_id
 
         db.session.commit()
+
+        from app.services.audit_service import AuditService
+        AuditService.log_event(
+            action='STOCK_TRANSFERRED',
+            resource_type='stock_picking',
+            resource_id=str(picking.id),
+            details=f"Transfer {picking.name} validated: {picking.source_location.full_name} -> {picking.dest_location.full_name}",
+            user_id=user_id
+        )
         return picking

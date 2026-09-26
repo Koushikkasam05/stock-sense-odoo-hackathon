@@ -1,26 +1,26 @@
 {% extends "base.html" %}
 
-{% block page_title %}Real-Time Inventory Dashboard{% endblock %}
+{% block page_title %}Enterprise Inventory Dashboard{% endblock %}
 
 {% block content %}
 <!-- KPI Cards Row -->
 <div class="row g-3 mb-4">
-    <!-- Total Products In Stock -->
-    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
-        <div class="kpi-card border-start border-4 border-info">
+    <!-- In-Stock Products -->
+    <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
+        <div class="kpi-card border-start border-4 border-success">
             <div class="d-flex align-items-center justify-content-between">
-                <span class="kpi-label">Total In-Stock</span>
-                <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                <span class="kpi-label">In-Stock Products</span>
+                <div class="kpi-icon bg-success bg-opacity-10 text-success">
                     <i class="bi bi-box-seam"></i>
                 </div>
             </div>
             <div class="kpi-value text-dark">{{ kpis.in_stock_products }}</div>
-            <div class="small text-muted mt-1">out of {{ kpis.total_products }} registered</div>
+            <div class="small text-muted mt-1">out of {{ kpis.total_products }} active items</div>
         </div>
     </div>
 
     <!-- Low Stock Alert -->
-    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+    <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
         <div class="kpi-card border-start border-4 border-warning">
             <div class="d-flex align-items-center justify-content-between">
                 <span class="kpi-label">Low Stock Items</span>
@@ -34,7 +34,7 @@
     </div>
 
     <!-- Out of Stock Alert -->
-    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
+    <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
         <div class="kpi-card border-start border-4 border-danger">
             <div class="d-flex align-items-center justify-content-between">
                 <span class="kpi-label">Out of Stock</span>
@@ -47,190 +47,285 @@
         </div>
     </div>
 
-    <!-- Pending Receipts -->
-    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
-        <div class="kpi-card border-start border-4 border-success">
+    <!-- Active Warehouses -->
+    <div class="col-xl-3 col-lg-6 col-md-6 col-sm-6">
+        <div class="kpi-card border-start border-4 border-info">
             <div class="d-flex align-items-center justify-content-between">
-                <span class="kpi-label">Pending Receipts</span>
-                <div class="kpi-icon bg-success bg-opacity-10 text-success">
-                    <i class="bi bi-box-arrow-in-down"></i>
+                <span class="kpi-label">Warehouses</span>
+                <div class="kpi-icon bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-buildings"></i>
                 </div>
             </div>
-            <div class="kpi-value text-success">{{ kpis.pending_receipts }}</div>
-            <div class="small text-muted mt-1">Awaiting verification</div>
-        </div>
-    </div>
-
-    <!-- Pending Deliveries -->
-    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
-        <div class="kpi-card border-start border-4 border-primary">
-            <div class="d-flex align-items-center justify-content-between">
-                <span class="kpi-label">Pending Deliveries</span>
-                <div class="kpi-icon bg-primary bg-opacity-10 text-primary">
-                    <i class="bi bi-box-arrow-up-right"></i>
-                </div>
-            </div>
-            <div class="kpi-value text-primary">{{ kpis.pending_deliveries }}</div>
-            <div class="small text-muted mt-1">Awaiting shipment</div>
-        </div>
-    </div>
-
-    <!-- Scheduled Transfers -->
-    <div class="col-xl-2 col-lg-4 col-md-4 col-sm-6">
-        <div class="kpi-card border-start border-4 border-secondary">
-            <div class="d-flex align-items-center justify-content-between">
-                <span class="kpi-label">Internal Transfers</span>
-                <div class="kpi-icon bg-secondary bg-opacity-10 text-secondary">
-                    <i class="bi bi-arrow-left-right"></i>
-                </div>
-            </div>
-            <div class="kpi-value text-secondary">{{ kpis.scheduled_transfers }}</div>
-            <div class="small text-muted mt-1">Inter-location moves</div>
+            <div class="kpi-value text-dark">{{ kpis.total_warehouses }}</div>
+            <div class="small text-muted mt-1">Active storage facilities</div>
         </div>
     </div>
 </div>
 
-<!-- Stock Summary Breakdown Cards Row -->
-<div class="row g-3 mb-4">
-    <!-- Stock Summary by Warehouse -->
-    <div class="col-lg-6">
-        <div class="card-theme p-3 h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                <span class="fw-bold small text-uppercase text-secondary"><i class="bi bi-buildings text-primary me-2"></i>Stock Summary by Warehouse</span>
-                <a href="{{ url_for('warehouses.index') }}" class="small text-decoration-none">Manage &rarr;</a>
-            </div>
-            {% if warehouse_summary %}
-                <div class="list-group list-group-flush">
-                    {% for wh in warehouse_summary %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
-                        <div>
-                            <span class="fw-semibold">{{ wh.name }}</span>
-                            <span class="text-muted small">({{ wh.code }})</span>
-                            <div class="small text-muted">{{ wh.product_count }} distinct product lines</div>
-                        </div>
-                        <div class="text-end">
-                            <span class="badge bg-primary fs-6">{{ wh.total_quantity }} Units</span>
-                        </div>
-                    </div>
-                    {% endfor %}
+<!-- Interactive Analytics & Velocity Row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-graph-up text-primary"></i>
+                    <h6 class="fw-bold mb-0">14-Day Stock Movement Velocity</h6>
                 </div>
-            {% else %}
-                <div class="text-muted small text-center py-3">No warehouse stock data recorded.</div>
-            {% endif %}
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-dark border"><i class="bi bi-currency-dollar text-success"></i>Valuation: ${{ "{:,.2f}".format(analytics.total_valuation) }}</span>
+                    <a href="{{ url_for('dashboard.analytics_view') }}" class="btn btn-sm btn-outline-primary py-1 px-2" style="font-size: 0.8rem;">
+                        <i class="bi bi-pie-chart-fill me-1"></i>Visual Analytics &rarr;
+                    </a>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div style="position: relative; height: 220px; width: 100%;">
+                    <canvas id="dashboardTrendChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
-
-    <!-- Stock Summary by Category -->
-    <div class="col-lg-6">
-        <div class="card-theme p-3 h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                <span class="fw-bold small text-uppercase text-secondary"><i class="bi bi-tags text-success me-2"></i>Stock Summary by Category</span>
-                <a href="{{ url_for('products.categories') }}" class="small text-decoration-none">Categories &rarr;</a>
-            </div>
-            {% if category_summary %}
-                <div class="list-group list-group-flush">
-                    {% for cat in category_summary %}
-                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
-                        <div>
-                            <span class="fw-semibold">{{ cat.name }}</span>
-                            <div class="small text-muted">{{ cat.product_count }} products registered</div>
-                        </div>
-                        <div class="text-end">
-                            <span class="badge bg-success bg-opacity-10 text-success border border-success fs-6">{{ cat.total_quantity }} Units</span>
-                        </div>
-                    </div>
-                    {% endfor %}
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-pie-chart text-success"></i>
+                    <h6 class="fw-bold mb-0">Valuation by Category</h6>
                 </div>
-            {% else %}
-                <div class="text-muted small text-center py-3">No category data recorded.</div>
-            {% endif %}
+            </div>
+            <div class="card-body pt-0 d-flex align-items-center justify-content-center">
+                <div style="position: relative; height: 200px; width: 100%;">
+                    <canvas id="dashboardCatChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Dynamic Search & Filter Bar -->
-<div class="card-theme p-3 mb-4">
-    <form method="GET" action="{{ url_for('dashboard.index') }}" class="row g-2 align-items-center">
-        <!-- Document Type Filter -->
-        <div class="col-md-3">
-            <label class="form-label small mb-1">Document Type</label>
-            <select name="doc_type" class="form-select form-select-sm" onchange="this.form.submit()">
-                <option value="all" {% if current_filters.doc_type == 'all' %}selected{% endif %}>All Types (Receipts, Deliveries, Transfers)</option>
-                <option value="receipt" {% if current_filters.doc_type == 'receipt' %}selected{% endif %}>Receipts</option>
-                <option value="delivery" {% if current_filters.doc_type == 'delivery' %}selected{% endif %}>Deliveries</option>
-                <option value="transfer" {% if current_filters.doc_type == 'transfer' %}selected{% endif %}>Internal Transfers</option>
-                <option value="adjustment" {% if current_filters.doc_type == 'adjustment' %}selected{% endif %}>Adjustments</option>
-            </select>
-        </div>
-
-        <!-- Status Filter -->
-        <div class="col-md-2">
-            <label class="form-label small mb-1">Status</label>
-            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                <option value="all" {% if current_filters.status == 'all' %}selected{% endif %}>All Statuses</option>
-                <option value="draft" {% if current_filters.status == 'draft' %}selected{% endif %}>Draft</option>
-                <option value="waiting" {% if current_filters.status == 'waiting' %}selected{% endif %}>Waiting</option>
-                <option value="ready" {% if current_filters.status == 'ready' %}selected{% endif %}>Ready</option>
-                <option value="done" {% if current_filters.status == 'done' %}selected{% endif %}>Done</option>
-                <option value="canceled" {% if current_filters.status == 'canceled' %}selected{% endif %}>Canceled</option>
-            </select>
-        </div>
-
-        <!-- Warehouse / Location Filter -->
-        <div class="col-md-3">
-            <label class="form-label small mb-1">Warehouse / Location</label>
-            <select name="location_id" class="form-select form-select-sm" onchange="this.form.submit()">
-                <option value="">All Storage Locations</option>
-                {% for loc in internal_locations %}
-                <option value="{{ loc.id }}" {% if current_filters.location_id == loc.id %}selected{% endif %}>{{ loc.full_name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- Search Bar -->
-        <div class="col-md-3">
-            <label class="form-label small mb-1">Reference / Partner Search</label>
-            <div class="input-group input-group-sm">
-                <input type="text" name="q" class="form-control" placeholder="Search reference, supplier, notes..." value="{{ current_filters.q }}">
-                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
-            </div>
-        </div>
-
-        <!-- Clear Filters -->
-        <div class="col-md-1 d-flex align-items-end">
-            <a href="{{ url_for('dashboard.index') }}" class="btn btn-sm btn-outline-secondary w-100" title="Clear Filters">
-                <i class="bi bi-arrow-counterclockwise"></i>
+<!-- Category Cards Row (Requirement 18) -->
+<div class="mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h6 class="fw-bold mb-0 text-uppercase text-secondary small">
+            <i class="bi bi-tags text-primary me-2"></i>Product Categories Overview
+        </h6>
+        {% if current_user.is_manager %}
+        <a href="{{ url_for('products.categories') }}" class="small text-decoration-none">Manage Categories &rarr;</a>
+        {% endif %}
+    </div>
+    <div class="row g-3">
+        {% for cat in category_summary %}
+        <div class="col-xl-3 col-lg-4 col-md-6">
+            <a href="{{ url_for('products.index', category_id=cat.category_id) }}" class="text-decoration-none text-dark">
+                <div class="card-theme p-3 h-100 hover-shadow">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="fw-bold text-truncate">{{ cat.name }}</span>
+                        <span class="badge bg-light text-dark border">{{ cat.total_quantity }} Units</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center small text-muted">
+                        <span>{{ cat.product_count }} Products</span>
+                        {% if cat.low_stock_count > 0 %}
+                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">
+                            <i class="bi bi-exclamation-circle me-1"></i>{{ cat.low_stock_count }} Low Stock
+                        </span>
+                        {% else %}
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success">All Healthy</span>
+                        {% endif %}
+                    </div>
+                </div>
             </a>
         </div>
-    </form>
+        {% endfor %}
+    </div>
 </div>
 
-<!-- Operations & Ledger Double Column Layout -->
+<!-- Multi-Dimensional Inventory Filter Panel (Requirement 17) -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-funnel text-primary fs-5"></i>
+            <h6 class="fw-bold mb-0">Multi-Dimensional Inventory Filters</h6>
+        </div>
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Filters
+        </a>
+    </div>
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('dashboard.index') }}" class="row g-3">
+            <!-- Filter 1: Warehouse / Location -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <label class="form-label small mb-1 fw-semibold">1. Warehouse / Location</label>
+                <select name="warehouse_id" class="form-select form-select-sm">
+                    <option value="">All Warehouses</option>
+                    {% for wh in warehouses %}
+                    <option value="{{ wh.id }}" {% if current_filters.warehouse_id == wh.id %}selected{% endif %}>{{ wh.name }} ({{ wh.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filter 2: Product Category -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <label class="form-label small mb-1 fw-semibold">2. Product Category</label>
+                <select name="category_id" class="form-select form-select-sm">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if current_filters.category_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filter 3: Stock Status -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <label class="form-label small mb-1 fw-semibold">3. Stock Status</label>
+                <select name="stock_status" class="form-select form-select-sm">
+                    <option value="all" {% if current_filters.stock_status == 'all' %}selected{% endif %}>All Stock Statuses</option>
+                    <option value="in_stock" {% if current_filters.stock_status == 'in_stock' %}selected{% endif %}>In Stock</option>
+                    <option value="low_stock" {% if current_filters.stock_status == 'low_stock' %}selected{% endif %}>Low Stock</option>
+                    <option value="critical" {% if current_filters.stock_status == 'critical' %}selected{% endif %}>Critical</option>
+                    <option value="out_of_stock" {% if current_filters.stock_status == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+                </select>
+            </div>
+
+            <!-- Filter 4: Movement Status -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <label class="form-label small mb-1 fw-semibold">4. Movement Status</label>
+                <select name="movement_status" class="form-select form-select-sm">
+                    <option value="all" {% if current_filters.movement_status == 'all' %}selected{% endif %}>All Movements</option>
+                    <option value="fast_moving" {% if current_filters.movement_status == 'fast_moving' %}selected{% endif %}>Fast Moving</option>
+                    <option value="normal_moving" {% if current_filters.movement_status == 'normal_moving' %}selected{% endif %}>Normal Moving</option>
+                    <option value="slow_moving" {% if current_filters.movement_status == 'slow_moving' %}selected{% endif %}>Slow Moving</option>
+                    <option value="no_movement" {% if current_filters.movement_status == 'no_movement' %}selected{% endif %}>No Movement</option>
+                </select>
+            </div>
+
+            <!-- Filter 5: Demand Status -->
+            <div class="col-xl-2 col-md-4 col-sm-6">
+                <label class="form-label small mb-1 fw-semibold">5. Demand Status</label>
+                <select name="demand_status" class="form-select form-select-sm">
+                    <option value="all" {% if current_filters.demand_status == 'all' %}selected{% endif %}>All Demand Levels</option>
+                    <option value="high_demand" {% if current_filters.demand_status == 'high_demand' %}selected{% endif %}>High Demand</option>
+                    <option value="medium_demand" {% if current_filters.demand_status == 'medium_demand' %}selected{% endif %}>Medium Demand</option>
+                    <option value="low_demand" {% if current_filters.demand_status == 'low_demand' %}selected{% endif %}>Low Demand</option>
+                    <option value="insufficient" {% if current_filters.demand_status == 'insufficient' %}selected{% endif %}>Insufficient data</option>
+                </select>
+            </div>
+
+            <!-- Search & Actions -->
+            <div class="col-xl-2 col-md-4 col-sm-6 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100 fw-semibold">
+                    <i class="bi bi-filter me-1"></i> Apply Filters
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Filtered Products Table View (Requirement 8, 10, 11, 12) -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-boxes text-primary fs-5"></i>
+            <h6 class="fw-bold mb-0">Filtered Inventory Products ({{ filtered_products|length }})</h6>
+        </div>
+        {% if current_user.is_manager %}
+        <a href="{{ url_for('products.create') }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Add Product
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Product Name</th>
+                        <th>SKU</th>
+                        <th>Category</th>
+                        <th class="text-end">Available Stock</th>
+                        <th>Stock Status</th>
+                        <th>Movement</th>
+                        <th>Demand Analysis</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if filtered_products %}
+                        {% for item in filtered_products %}
+                        {% set p = item.product %}
+                        <tr>
+                            <td class="ps-4">
+                                <a href="{{ url_for('products.detail', product_id=p.id) }}" class="fw-bold text-decoration-none text-dark">
+                                    {{ p.name }}
+                                </a>
+                                {% if p.description %}
+                                <div class="text-muted small text-truncate" style="max-width: 250px;">{{ p.description }}</div>
+                                {% endif %}
+                            </td>
+                            <td><code>{{ p.sku }}</code></td>
+                            <td><span class="badge bg-light text-dark border">{{ p.category.name if p.category else 'Uncategorized' }}</span></td>
+                            <td class="text-end fw-bold">
+                                {{ "%.1f"|format(item.total_stock) }} <span class="text-muted small fw-normal">{{ p.uom }}</span>
+                            </td>
+                            <td>
+                                <span class="{{ item.stock_status_badge }}">{{ item.stock_status_display }}</span>
+                            </td>
+                            <td>
+                                <span class="{{ item.movement.badge_class }}">{{ item.movement.status }}</span>
+                            </td>
+                            <td>
+                                <span class="{{ item.demand.badge_class }}">{{ item.demand.status }}</span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <a href="{{ url_for('products.detail', product_id=p.id) }}" class="btn btn-sm btn-outline-primary me-1" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if current_user.is_manager %}
+                                <a href="{{ url_for('products.edit', product_id=p.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit Master Data">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox display-6 d-block mb-2 text-secondary opacity-50"></i>
+                                No products found for the selected filters.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Operations & Ledger Row -->
 <div class="row g-4">
     <!-- Active Operations Stream -->
     <div class="col-lg-8">
-        <div class="card-theme">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="fw-bold"><i class="bi bi-activity text-primary me-2"></i>Stock Operations Feed</span>
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <span class="fw-bold"><i class="bi bi-activity text-primary me-2"></i>Recent Inventory Operations</span>
                 <span class="badge bg-light text-dark border">{{ operations|length }} Records</span>
             </div>
             <div class="table-responsive">
-                <table class="table table-custom table-hover align-middle mb-0">
-                    <thead>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th>Reference</th>
+                            <th class="ps-3">Reference</th>
                             <th>Type</th>
                             <th>Partner / Notes</th>
-                            <th>Locations</th>
+                            <th>Route</th>
                             <th>Status</th>
-                            <th class="text-end">Action</th>
+                            <th class="text-end pe-3">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% if operations %}
                             {% for op in operations %}
                             <tr>
-                                <td>
+                                <td class="ps-3">
                                     <span class="fw-bold">{{ op.name }}</span>
                                     <div class="small text-muted">{{ op.created_at.strftime('%b %d, %H:%M') }}</div>
                                 </td>
@@ -246,9 +341,9 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <div class="fw-semibold">{{ op.partner_name or '-' }}</div>
+                                    <div class="fw-semibold small">{{ op.partner_name or '-' }}</div>
                                     {% if op.notes %}
-                                    <div class="small text-muted text-truncate" style="max-width: 180px;">{{ op.notes }}</div>
+                                    <div class="text-muted small text-truncate" style="max-width: 150px;">{{ op.notes }}</div>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -256,9 +351,9 @@
                                     <div class="small"><span class="text-muted">To:</span> {{ op.dest_location.full_name }}</div>
                                 </td>
                                 <td>
-                                    <span class="badge badge-status {{ op.badge_class }}">{{ op.status.upper() }}</span>
+                                    <span class="badge {{ op.badge_class }}">{{ op.status.upper() }}</span>
                                 </td>
-                                <td class="text-end">
+                                <td class="text-end pe-3">
                                     {% if op.picking_type == 'receipt' %}
                                         <a href="{{ url_for('receipts.detail', picking_id=op.id) }}" class="btn btn-sm btn-outline-primary">View</a>
                                     {% elif op.picking_type == 'delivery' %}
@@ -274,8 +369,8 @@
                         {% else %}
                             <tr>
                                 <td colspan="6" class="text-center py-4 text-muted">
-                                    <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
-                                    No stock operations match the selected criteria.
+                                    <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                                    No stock operations match the criteria.
                                 </td>
                             </tr>
                         {% endif %}
@@ -285,12 +380,12 @@
         </div>
     </div>
 
-    <!-- Real-Time Stock Ledger Snapshot -->
+    <!-- Live Stock Ledger Snapshot -->
     <div class="col-lg-4">
-        <div class="card-theme mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="fw-bold"><i class="bi bi-journal-text text-success me-2"></i>Live Stock Ledger</span>
-                <a href="{{ url_for('ledger.index') }}" class="small text-decoration-none">Full History &rarr;</a>
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <span class="fw-bold"><i class="bi bi-journal-text text-success me-2"></i>Movement Audit Ledger</span>
+                <a href="{{ url_for('ledger.index') }}" class="small text-decoration-none">View All &rarr;</a>
             </div>
             <div class="p-3">
                 {% if recent_ledger %}
@@ -313,29 +408,100 @@
                         {% endfor %}
                     </ul>
                 {% else %}
-                    <div class="text-center text-muted py-4 small">No ledger entries recorded yet.</div>
+                    <div class="text-center text-muted py-4 small">No inventory transactions available.</div>
                 {% endif %}
-            </div>
-        </div>
-
-        <!-- Quick Actions & Links -->
-        <div class="card-theme p-3">
-            <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge text-warning me-2"></i>Quick Actions</h6>
-            <div class="d-grid gap-2">
-                <a href="{{ url_for('products.create') }}" class="btn btn-sm btn-outline-dark text-start">
-                    <i class="bi bi-plus-circle me-2 text-primary"></i> Create New Product
-                </a>
-                <a href="{{ url_for('transfers.create') }}" class="btn btn-sm btn-outline-dark text-start">
-                    <i class="bi bi-arrow-left-right me-2 text-warning"></i> Internal Transfer
-                </a>
-                <a href="{{ url_for('adjustments.create') }}" class="btn btn-sm btn-outline-dark text-start">
-                    <i class="bi bi-sliders me-2 text-info"></i> Inventory Adjustment Audit
-                </a>
-                <a href="{{ url_for('warehouses.index') }}" class="btn btn-sm btn-outline-dark text-start">
-                    <i class="bi bi-buildings me-2 text-secondary"></i> Multi-Warehouse Settings
-                </a>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const analytics = {{ analytics|tojson }};
+    const palette = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#f97316'];
+
+    // 1. Dashboard Movement Trends Line Chart
+    const trendCtx = document.getElementById('dashboardTrendChart');
+    if (trendCtx) {
+        new Chart(trendCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: analytics.trends.labels,
+                datasets: [
+                    {
+                        label: 'Inbound Inflow',
+                        data: analytics.trends.inbound,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2,
+                        pointRadius: 3
+                    },
+                    {
+                        label: 'Outbound Outflow',
+                        data: analytics.trends.outbound,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2,
+                        pointRadius: 3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 6, font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return `${ctx.dataset.label}: ${ctx.parsed.y} units`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } }
+                }
+            }
+        });
+    }
+
+    // 2. Dashboard Category Valuation Chart
+    const catCtx = document.getElementById('dashboardCatChart');
+    if (catCtx) {
+        new Chart(catCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: analytics.categories.labels,
+                datasets: [{
+                    data: analytics.categories.valuations,
+                    backgroundColor: palette.slice(0, analytics.categories.labels.length),
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 6, font: { size: 10 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                return ` $${ctx.parsed.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+</script>
 {% endblock %}

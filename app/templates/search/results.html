@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block page_title %}Global Search Results{% endblock %}
+
+{% block content %}
+<div class="mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1">Search Results for "<span class="text-primary">{{ query }}</span>"</h4>
+        <p class="text-muted small mb-0">Showing matching products and warehouse facilities</p>
+    </div>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+    </a>
+</div>
+
+<!-- Group 1: Products -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-box-seam text-primary fs-5"></i>
+            <h6 class="fw-bold mb-0">Matching Products ({{ products|length }})</h6>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if products %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Product</th>
+                        <th>SKU</th>
+                        <th>Category</th>
+                        <th>Unit</th>
+                        <th class="text-end">Total Stock</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in products %}
+                    <tr>
+                        <td class="ps-4">
+                            <a href="{{ url_for('products.detail', product_id=p.id) }}" class="fw-bold text-decoration-none text-dark">
+                                {{ p.name }}
+                            </a>
+                            {% if p.description %}
+                            <div class="text-muted small text-truncate" style="max-width: 300px;">{{ p.description }}</div>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ p.sku }}</code></td>
+                        <td><span class="badge bg-light text-dark border">{{ p.category.name if p.category else 'General' }}</span></td>
+                        <td>{{ p.uom }}</td>
+                        <td class="text-end fw-bold">{{ "%.1f"|format(p.total_stock) }}</td>
+                        <td>
+                            <span class="{{ p.stock_status_badge }}">{{ p.stock_status_display }}</span>
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{{ url_for('products.detail', product_id=p.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye me-1"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-box-seam display-6 d-block mb-2 text-secondary opacity-50"></i>
+            No products matched your search query.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Group 2: Warehouses -->
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-buildings text-info fs-5"></i>
+            <h6 class="fw-bold mb-0">Matching Warehouses ({{ warehouses|length }})</h6>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if warehouses %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Warehouse</th>
+                        <th>Code</th>
+                        <th>Address / Facility Location</th>
+                        <th>Status</th>
+                        <th class="text-end pe-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for w in warehouses %}
+                    <tr>
+                        <td class="ps-4">
+                            <a href="{{ url_for('warehouses.warehouse_stock', warehouse_id=w.id) }}" class="fw-bold text-decoration-none text-dark">
+                                {{ w.name }}
+                            </a>
+                        </td>
+                        <td><span class="badge bg-secondary">{{ w.code }}</span></td>
+                        <td>{{ w.address or 'Standard Central Logistics Facility' }}</td>
+                        <td>
+                            {% if w.is_active %}
+                            <span class="badge bg-success">Operational</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <a href="{{ url_for('warehouses.warehouse_stock', warehouse_id=w.id) }}" class="btn btn-sm btn-outline-info">
+                                <i class="bi bi-boxes me-1"></i> View Stock
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-buildings display-6 d-block mb-2 text-secondary opacity-50"></i>
+            No warehouses matched your search query.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

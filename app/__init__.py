@@ -28,6 +28,7 @@ def create_app(config_class=None):
     from app.routes.adjustments import adjustments_bp
     from app.routes.ledger import ledger_bp
     from app.routes.notifications import notifications_bp
+    from app.routes.search import search_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -39,6 +40,7 @@ def create_app(config_class=None):
     app.register_blueprint(adjustments_bp)
     app.register_blueprint(ledger_bp)
     app.register_blueprint(notifications_bp)
+    app.register_blueprint(search_bp)
 
     # Health Check Endpoint
     @app.route('/health')
@@ -74,6 +76,14 @@ def create_app(config_class=None):
         return {'global_alert_count': 0, 'global_unread_notifications': 0, 'has_critical_alerts': False}
 
     # Error handlers
+    @app.errorhandler(400)
+    def bad_request(e):
+        return render_template('errors/400.html'), 400
+
+    @app.errorhandler(401)
+    def unauthorized(e):
+        return render_template('errors/401.html'), 401
+
     @app.errorhandler(403)
     def forbidden(e):
         return render_template('errors/403.html'), 403
@@ -81,6 +91,10 @@ def create_app(config_class=None):
     @app.errorhandler(404)
     def page_not_found(e):
         return render_template('errors/404.html'), 404
+
+    @app.errorhandler(429)
+    def too_many_requests(e):
+        return render_template('errors/429.html'), 429
 
     @app.errorhandler(500)
     def internal_server_error(e):

@@ -103,4 +103,13 @@ class AdjustmentService:
             )
 
         db.session.commit()
+
+        from app.services.audit_service import AuditService
+        AuditService.log_event(
+            action='STOCK_ADJUSTED',
+            resource_type='stock_picking',
+            resource_id=str(picking.id),
+            details=f"Adjustment {picking.name}: {product.name} at {location.full_name} from {system_quantity} to {counted_quantity} (Diff: {diff:+}). Reason: {reason or 'Audit'}",
+            user_id=user_id
+        )
         return picking

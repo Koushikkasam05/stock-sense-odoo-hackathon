@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+
+{% block page_title %}Visual Inventory Analytics & Insights{% endblock %}
+
+{% block content %}
+<!-- Top Stats Bar -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="bi bi-graph-up text-primary me-2"></i>Executive Inventory Analytics</h4>
+        <p class="text-muted small mb-0">Real-time valuation, velocity segmentation, warehouse allocation, and transaction trends.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-light text-dark border px-3 py-2">
+            <i class="bi bi-currency-dollar text-success me-1"></i>Total Valuation: <strong class="text-success">${{ "{:,.2f}".format(analytics.total_valuation) }}</strong>
+        </span>
+        <button class="btn btn-sm btn-outline-primary shadow-sm" onclick="refreshAnalyticsData()">
+            <i class="bi bi-arrow-clockwise me-1"></i>Live Refresh
+        </button>
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-sm btn-primary shadow-sm">
+            <i class="bi bi-speedometer2 me-1"></i>Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Key Analytics Metric Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card-theme p-3 border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-semibold text-uppercase">Total Catalog</span>
+                <i class="bi bi-boxes fs-4 text-primary opacity-75"></i>
+            </div>
+            <div class="fs-3 fw-bold text-dark mt-1">{{ kpis.total_products }}</div>
+            <div class="small text-muted">Across {{ kpis.total_warehouses }} active facilities</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card-theme p-3 border-start border-4 border-success">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-semibold text-uppercase">Healthy Stock</span>
+                <i class="bi bi-check-circle fs-4 text-success opacity-75"></i>
+            </div>
+            <div class="fs-3 fw-bold text-success mt-1">{{ kpis.in_stock_products }}</div>
+            <div class="small text-muted">{{ "%.1f"|format((kpis.in_stock_products / (kpis.total_products or 1)) * 100) }}% operational compliance</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card-theme p-3 border-start border-4 border-warning">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-semibold text-uppercase">Pending Operations</span>
+                <i class="bi bi-arrow-repeat fs-4 text-warning opacity-75"></i>
+            </div>
+            <div class="fs-3 fw-bold text-warning mt-1">{{ kpis.pending_receipts + kpis.pending_deliveries + kpis.scheduled_transfers }}</div>
+            <div class="small text-muted">{{ kpis.pending_receipts }} Inbound &bull; {{ kpis.pending_deliveries }} Outbound</div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card-theme p-3 border-start border-4 border-danger">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-semibold text-uppercase">Attention Needed</span>
+                <i class="bi bi-exclamation-triangle fs-4 text-danger opacity-75"></i>
+            </div>
+            <div class="fs-3 fw-bold text-danger mt-1">{{ kpis.low_stock_products + kpis.out_of_stock_products }}</div>
+            <div class="small text-muted">{{ kpis.critical_stock_products }} Critical &bull; {{ kpis.out_of_stock_products }} Out of Stock</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1: 14-Day Movement Trends & Category Valuation -->
+<div class="row g-4 mb-4">
+    <!-- Transaction Trends Line Chart -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-activity text-primary me-2"></i>14-Day Stock Movement Velocity & Trends</h6>
+                    <small class="text-muted">Inbound (Receipts/Adjustments+) vs Outbound (Deliveries/Adjustments-) quantity volume</small>
+                </div>
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary">Daily Ledger Activity</span>
+            </div>
+            <div class="card-body">
+                <div style="position: relative; height: 320px; width: 100%;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Valuation Doughnut Chart -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-pie-chart text-success me-2"></i>Inventory Valuation by Category</h6>
+                <small class="text-muted">Total financial asset allocation across categories</small>
+            </div>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                <div style="position: relative; height: 260px; width: 100%;">
+                    <canvas id="categoryValuationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2: Warehouse Distribution & Velocity & Health -->
+<div class="row g-4 mb-4">
+    <!-- Warehouse Allocation Bar Chart -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-buildings text-info me-2"></i>Stock Allocation by Warehouse</h6>
+                <small class="text-muted">Aggregate quantity held per logistics hub</small>
+            </div>
+            <div class="card-body">
+                <div style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="warehouseChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Movement Velocity Segmentation Chart -->
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-lightning-charge text-warning me-2"></i>Velocity Profile</h6>
+                <small class="text-muted">Turnover frequency</small>
+            </div>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                <div style="position: relative; height: 240px; width: 100%;">
+                    <canvas id="velocityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Status Breakdown Chart -->
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-shield-check text-success me-2"></i>Health Distribution</h6>
+                <small class="text-muted">Stock safety levels</small>
+            </div>
+            <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                <div style="position: relative; height: 240px; width: 100%;">
+                    <canvas id="healthChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const analyticsData = {{ analytics|tojson }};
+
+    // Color Palettes
+    const colors = {
+        primary: '#3b82f6',
+        success: '#10b981',
+        warning: '#f59e0b',
+        danger: '#ef4444',
+        info: '#06b6d4',
+        purple: '#8b5cf6',
+        palette: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#f97316']
+    };
+
+    // 1. Transaction Trend Chart (Line)
+    const trendCtx = document.getElementById('trendChart').getContext('2d');
+    const trendChart = new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: analyticsData.trends.labels,
+            datasets: [
+                {
+                    label: 'Inbound Inflow',
+                    data: analyticsData.trends.inbound,
+                    borderColor: colors.success,
+                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    pointRadius: 4,
+                    pointBackgroundColor: colors.success
+                },
+                {
+                    label: 'Outbound Outflow',
+                    data: analyticsData.trends.outbound,
+                    borderColor: colors.danger,
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.5,
+                    pointRadius: 4,
+                    pointBackgroundColor: colors.danger
+                },
+                {
+                    label: 'Internal Transfers',
+                    data: analyticsData.trends.transfers,
+                    borderColor: colors.info,
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5],
+                    tension: 0.3,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointBackgroundColor: colors.info
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } },
+                tooltip: {
+                    padding: 10,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y} units`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, grid: { color: '#f1f5f9' } }
+            }
+        }
+    });
+
+    // 2. Category Valuation Chart (Doughnut)
+    const catCtx = document.getElementById('categoryValuationChart').getContext('2d');
+    const categoryValuationChart = new Chart(catCtx, {
+        type: 'doughnut',
+        data: {
+            labels: analyticsData.categories.labels,
+            datasets: [{
+                data: analyticsData.categories.valuations,
+                backgroundColor: colors.palette.slice(0, analyticsData.categories.labels.length),
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 11 } } },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const val = context.parsed;
+                            return ` Valuation: $${val.toLocaleString()}`;
+                        }
+                    }
+                }
+            },
+            cutout: '65%'
+        }
+    });
+
+    // 3. Warehouse Stock Bar Chart
+    const whCtx = document.getElementById('warehouseChart').getContext('2d');
+    const warehouseChart = new Chart(whCtx, {
+        type: 'bar',
+        data: {
+            labels: analyticsData.warehouses.labels,
+            datasets: [{
+                label: 'Stock Quantity',
+                data: analyticsData.warehouses.quantities,
+                backgroundColor: 'rgba(59, 130, 246, 0.85)',
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, grid: { color: '#f1f5f9' } }
+            }
+        }
+    });
+
+    // 4. Movement Velocity Chart (Doughnut)
+    const velCtx = document.getElementById('velocityChart').getContext('2d');
+    const velocityChart = new Chart(velCtx, {
+        type: 'doughnut',
+        data: {
+            labels: analyticsData.velocity.labels,
+            datasets: [{
+                data: analyticsData.velocity.data,
+                backgroundColor: [colors.success, colors.primary, colors.warning, '#94a3b8'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } } }
+            },
+            cutout: '60%'
+        }
+    });
+
+    // 5. Health Status Breakdown Chart (Doughnut)
+    const healthCtx = document.getElementById('healthChart').getContext('2d');
+    const healthChart = new Chart(healthCtx, {
+        type: 'doughnut',
+        data: {
+            labels: analyticsData.health.labels,
+            datasets: [{
+                data: analyticsData.health.data,
+                backgroundColor: [colors.success, colors.warning, '#ea580c', colors.danger],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, font: { size: 10 } } }
+            },
+            cutout: '60%'
+        }
+    });
+
+    // Real-Time Refresh Function
+    function refreshAnalyticsData() {
+        fetch('/analytics/api')
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    const d = res.data;
+                    // update trend chart
+                    trendChart.data.labels = d.trends.labels;
+                    trendChart.data.datasets[0].data = d.trends.inbound;
+                    trendChart.data.datasets[1].data = d.trends.outbound;
+                    trendChart.data.datasets[2].data = d.trends.transfers;
+                    trendChart.update();
+
+                    // update category chart
+                    categoryValuationChart.data.labels = d.categories.labels;
+                    categoryValuationChart.data.datasets[0].data = d.categories.valuations;
+                    categoryValuationChart.update();
+
+                    // update warehouse chart
+                    warehouseChart.data.labels = d.warehouses.labels;
+                    warehouseChart.data.datasets[0].data = d.warehouses.quantities;
+                    warehouseChart.update();
+
+                    // update velocity & health
+                    velocityChart.data.datasets[0].data = d.velocity.data;
+                    velocityChart.update();
+
+                    healthChart.data.datasets[0].data = d.health.data;
+                    healthChart.update();
+                }
+            })
+            .catch(console.error);
+    }
+</script>
+{% endblock %}

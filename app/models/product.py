@@ -45,6 +45,11 @@ class Product(db.Model):
         return float(total or 0.0)
 
     @property
+    def is_critical_stock(self) -> bool:
+        stock = self.total_stock
+        return 0 < stock <= (self.min_stock_level * 0.25)
+
+    @property
     def is_low_stock(self) -> bool:
         stock = self.total_stock
         return 0 < stock <= self.min_stock_level
@@ -58,9 +63,31 @@ class Product(db.Model):
         stock = self.total_stock
         if stock <= 0:
             return 'out_of_stock'
+        if stock <= (self.min_stock_level * 0.25):
+            return 'critical'
         if stock <= self.min_stock_level:
             return 'low_stock'
         return 'in_stock'
+
+    @property
+    def stock_status_display(self) -> str:
+        mapping = {
+            'in_stock': 'In Stock',
+            'low_stock': 'Low Stock',
+            'critical': 'Critical',
+            'out_of_stock': 'Out of Stock'
+        }
+        return mapping.get(self.stock_status, 'In Stock')
+
+    @property
+    def stock_status_badge(self) -> str:
+        mapping = {
+            'in_stock': 'badge bg-success',
+            'low_stock': 'badge bg-warning text-dark',
+            'critical': 'badge bg-danger text-white',
+            'out_of_stock': 'badge bg-dark text-white'
+        }
+        return mapping.get(self.stock_status, 'badge bg-secondary')
 
     def __repr__(self) -> str:
         return f'<Product {self.sku} - {self.name}>'

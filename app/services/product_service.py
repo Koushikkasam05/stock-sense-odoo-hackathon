@@ -1,9 +1,10 @@
 from typing import Optional, List, Dict, Any
 from app.extensions import db
-from app.models.product import Product, ProductCategory
-from app.models.warehouse import Location
+from app.models.product import Product, ProductCategory, StockQuant
+from app.models.warehouse import Warehouse, Location
 from app.services.stock_service import StockService
 from app.services.warehouse_service import WarehouseService
+from app.services.audit_service import AuditService
 
 class ProductService:
     @staticmethod
@@ -14,6 +15,12 @@ class ProductService:
             cat = ProductCategory(name=name_clean, description=description)
             db.session.add(cat)
             db.session.commit()
+            AuditService.log_event(
+                action='CATEGORY_CREATED',
+                resource_type='category',
+                resource_id=str(cat.id),
+                details=f"Created category: {cat.name}"
+            )
         return cat
 
     @staticmethod
@@ -46,10 +53,18 @@ class ProductService:
         db.session.add(product)
         db.session.flush()
 
+        # Record Audit Log
+        AuditService.log_event(
+            action='PRODUCT_CREATED',
+            resource_type='product',
+            resource_id=str(product.id),
+            details=f"Created product {product.name} (SKU: {product.sku})",
+            user_id=user_id
+        )
+
         # Handle initial stock safely via StockService with a ledger entry
         if initial_stock > 0:
             if not initial_location_id:
-                # Default to primary warehouse stock location
                 WarehouseService.ensure_default_locations()
                 main_stock_loc = Location.query.filter_by(code='WH-MAIN/STOCK').first()
                 initial_location_id = main_stock_loc.id if main_stock_loc else None
@@ -82,6 +97,8 @@ class ProductService:
         if not product:
             raise ValueError(f"Product ID {product_id} not found.")
 
+        old_details = f"name={product.name}, min_stock={product.min_stock_level}, active={product.is_active}"
+
         product.name = name.strip()
         product.category_id = category_id
         product.uom = uom.strip() if uom else 'Units'
@@ -90,6 +107,14 @@ class ProductService:
         product.is_active = is_active
 
         db.session.commit()
+
+        AuditService.log_event(
+            action='PRODUCT_UPDATED',
+            resource_type='product',
+            resource_id=str(product.id),
+            details=f"Updated product {product.name} (SKU: {product.sku}). Old: [{old_details}]"
+        )
+
         return product
 
     @staticmethod

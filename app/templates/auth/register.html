@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
 {% block auth_content %}
-<div class="auth-card" style="max-width: 480px;">
+<div class="auth-card shadow-lg border-0" style="max-width: 520px;">
     <div class="auth-header">
         <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
             <i class="bi bi-person-plus fs-1 text-info"></i>
         </div>
         <h3 class="fw-bold mb-1">Create Account</h3>
-        <p class="text-secondary small mb-0">Join the StockSense Inventory Network</p>
+        <p class="text-secondary small mb-0">Authorized StockSense Personnel Registration</p>
     </div>
     
     <div class="p-4">
@@ -22,49 +22,173 @@
             {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('auth.register') }}">
+        <form method="POST" action="{{ url_for('auth.register') }}" id="register-form" onsubmit="return validateRegisterForm()">
+            <!-- Full Name -->
             <div class="mb-3">
-                <label for="full_name" class="form-label">Full Name</label>
-                <input type="text" class="form-control" id="full_name" name="full_name" required placeholder="e.g., Jane Doe" autofocus>
+                <label for="full_name" class="form-label fw-semibold small">Full Name</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control" id="full_name" name="full_name" required placeholder="e.g., Alex Rivera" autofocus>
+                </div>
             </div>
 
+            <!-- Username & Mobile -->
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="username" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="username" name="username" required placeholder="janedoe">
+                    <label for="username" class="form-label fw-semibold small">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-at"></i></span>
+                        <input type="text" class="form-control" id="username" name="username" required placeholder="arivera">
+                    </div>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="role" class="form-label">System Role</label>
-                    <select class="form-select" id="role" name="role">
-                        <option value="inventory_manager">Inventory Manager</option>
-                        <option value="warehouse_staff" selected>Warehouse Staff</option>
-                    </select>
+                    <label for="mobile_number" class="form-label fw-semibold small">Mobile Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-phone"></i></span>
+                        <input type="text" class="form-control" id="mobile_number" name="mobile_number" placeholder="+15550109999">
+                    </div>
                 </div>
             </div>
 
+            <!-- Email Address Constraint -->
             <div class="mb-3">
-                <label for="email" class="form-label">Email Address</label>
-                <input type="email" class="form-control" id="email" name="email" required placeholder="jane@stocksense.com">
+                <label for="email" class="form-label fw-semibold small">Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                    <input type="email" class="form-control" id="email" name="email" required placeholder="name@domain.com" oninput="checkEmailValidity(this.value)">
+                </div>
+                <div id="email-feedback" class="form-text small text-muted">Must be a valid email format (e.g. user@domain.com).</div>
             </div>
 
+            <!-- Password & Confirm Password -->
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input type="password" class="form-control" id="password" name="password" required minlength="6" placeholder="••••••••">
+                    <label for="password" class="form-label fw-semibold small">Password (8+ chars)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" id="password" name="password" required minlength="8" placeholder="••••••••" oninput="validatePasswordRules(this.value)">
+                    </div>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="confirm_password" class="form-label">Confirm Password</label>
-                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6" placeholder="••••••••">
+                    <label for="confirm_password" class="form-label fw-semibold small">Confirm Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light"><i class="bi bi-lock-fill"></i></span>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="8" placeholder="••••••••" oninput="checkPasswordMatch()">
+                    </div>
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Register & Continue</button>
+            <div id="password-match-feedback" class="small mb-2 d-none"></div>
+
+            <!-- Password Constraint Rules Card -->
+            <div class="p-3 mb-3 bg-light rounded border border-secondary border-opacity-10 small">
+                <div class="fw-semibold text-secondary mb-2"><i class="bi bi-shield-check text-primary me-1"></i> Password Security Requirements:</div>
+                <ul class="list-unstyled mb-0 row g-1">
+                    <li class="col-6 text-muted" id="rule-length"><i class="bi bi-circle me-1"></i> Min 8 characters</li>
+                    <li class="col-6 text-muted" id="rule-upper"><i class="bi bi-circle me-1"></i> 1 Uppercase (A-Z)</li>
+                    <li class="col-6 text-muted" id="rule-lower"><i class="bi bi-circle me-1"></i> 1 Lowercase (a-z)</li>
+                    <li class="col-6 text-muted" id="rule-num"><i class="bi bi-circle me-1"></i> 1 Numeric (0-9)</li>
+                    <li class="col-12 text-muted" id="rule-symbol"><i class="bi bi-circle me-1"></i> 1 Special symbol (!@#$%^&*...)</li>
+                </ul>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold shadow-sm">
+                <i class="bi bi-person-check me-1"></i> Register Account
+            </button>
         </form>
 
         <div class="text-center mt-4 pt-3 border-top">
-            <span class="text-muted small">Already registered?</span>
+            <span class="text-muted small">Already have an account?</span>
             <a href="{{ url_for('auth.login') }}" class="small fw-semibold text-decoration-none ms-1">Sign In</a>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function validatePasswordRules(pwd) {
+    const hasLength = pwd.length >= 8;
+    const hasUpper = /[A-Z]/.test(pwd);
+    const hasLower = /[a-z]/.test(pwd);
+    const hasNum = /\d/.test(pwd);
+    const hasSymbol = /[^A-Za-z0-9]/.test(pwd);
+
+    updateRuleBadge('rule-length', hasLength);
+    updateRuleBadge('rule-upper', hasUpper);
+    updateRuleBadge('rule-lower', hasLower);
+    updateRuleBadge('rule-num', hasNum);
+    updateRuleBadge('rule-symbol', hasSymbol);
+
+    checkPasswordMatch();
+}
+
+function updateRuleBadge(elementId, passed) {
+    const el = document.getElementById(elementId);
+    if (passed) {
+        el.className = 'col text-success fw-semibold';
+        el.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> ${el.innerText.replace(/^.*?\s/, '')}`;
+    } else {
+        el.className = 'col text-muted';
+        el.innerHTML = `<i class="bi bi-circle me-1"></i> ${el.innerText.replace(/^.*?\s/, '')}`;
+    }
+}
+
+function checkPasswordMatch() {
+    const pwd = document.getElementById('password').value;
+    const confirmPwd = document.getElementById('confirm_password').value;
+    const feedback = document.getElementById('password-match-feedback');
+
+    if (!confirmPwd) {
+        feedback.classList.add('d-none');
+        return;
+    }
+
+    feedback.classList.remove('d-none');
+    if (pwd === confirmPwd) {
+        feedback.className = 'small mb-2 text-success fw-semibold';
+        feedback.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Passwords match perfectly.';
+    } else {
+        feedback.className = 'small mb-2 text-danger fw-semibold';
+        feedback.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> Passwords do not match.';
+    }
+}
+
+function checkEmailValidity(email) {
+    const regex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+    const feedback = document.getElementById('email-feedback');
+    if (regex.test(email)) {
+        feedback.className = 'form-text small text-success';
+        feedback.innerHTML = '<i class="bi bi-check-circle me-1"></i> Valid email address format.';
+    } else {
+        feedback.className = 'form-text small text-muted';
+        feedback.textContent = 'Must be a valid email format (e.g. user@domain.com).';
+    }
+}
+
+function validateRegisterForm() {
+    const pwd = document.getElementById('password').value;
+    const confirmPwd = document.getElementById('confirm_password').value;
+    const email = document.getElementById('email').value.trim();
+
+    const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+    if (!emailRegex.test(email)) {
+        alert('Please provide a valid email address.');
+        return false;
+    }
+
+    if (pwd !== confirmPwd) {
+        alert('Password and Confirm Password do not match.');
+        return false;
+    }
+
+    const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+    if (!pwdRegex.test(pwd)) {
+        alert('Password must be at least 8 characters with 1 uppercase, 1 lowercase, 1 numeric, and 1 special symbol.');
+        return false;
+    }
+
+    return true;
+}
+</script>
 {% endblock %}

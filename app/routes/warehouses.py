@@ -2,7 +2,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required
 from app.extensions import db
 from app.models.warehouse import Warehouse, Location
+from app.models.product import Product, ProductCategory, StockQuant
 from app.services.warehouse_service import WarehouseService
+from app.services.movement_service import MovementAnalysisService
+from app.services.demand_service import DemandAnalysisService
 from app.utils.decorators import manager_required
 
 warehouses_bp = Blueprint('warehouses', __name__, url_prefix='/warehouses')
@@ -66,8 +69,100 @@ def warehouse_stock(warehouse_id: int):
         flash('Warehouse not found.', 'danger')
         return redirect(url_for('warehouses.index'))
 
-    stock_items = WarehouseService.get_warehouse_stock(warehouse_id)
-    return render_template('warehouses/warehouse_stock.html', warehouse=wh, stock_items=stock_items)
+    category_id = request.args.get('category_id', type=int)
+    search_query = request.args.get('q', '').strip()
+
+    # Query quants inside this warehouse
+    quants_query = StockQuant.query.join(Location).join(Product).filter(
+        Location.warehouse_id == warehouse_id,
+        Location.location_type == 'internal'
+    )
+
+    if category_id:
+        quants_query = quants_query.filter(Product.category_id == category_id)
+
+    if search_query:
+        term = f"%{search_query}%"
+        quants_query = quants_query.filter(
+            (Product.name.ilike(term)) | (Product.sku.ilike(term))
+        )
+
+    quants = quants_query.order_by(Product.name.asc()).all()
+
+    # Warehouse metrics
+    total_qty = 0.0
+    total_products = len(quants)
+    low_stock_count = 0
+    out_of_stock_count = 0
+    fast_moving_count = 0
+    slow_moving_count = 0
+
+    detailed_stock_items = []
+    for q in quants:
+        p = q.product
+        qty = q.quantity
+        res = q.reserved_quantity
+        avail = q.available_quantity
+        total_qty += qty
+
+        # Stock status
+        if qty <= 0:
+            st_badge = 'badge bg-dark text-white'
+            st_display = 'Out of Stock'
+            out_of_stock_count += 1
+        elif qty <= (p.min_stock_level * 0.25):
+            st_badge = 'badge bg-danger text-white'
+            st_display = 'Critical'
+            low_stock_count += 1
+        elif qty <= p.min_stock_level:
+            st_badge = 'badge bg-warning text-dark'
+            st_display = 'Low Stock'
+            low_stock_count += 1
+        else:
+            st_badge = 'badge bg-success'
+            st_display = 'In Stock'
+
+        mov = MovementAnalysisService.get_movement_status(p.id)
+        if 'Fast' in mov['status']:
+            fast_moving_count += 1
+        elif 'Slow' in mov['status'] or 'No' in mov['status']:
+            slow_moving_count += 1
+
+        dem = DemandAnalysisService.get_demand_status(p.id)
+
+        detailed_stock_items.append({
+            'quant': q,
+            'product': p,
+            'location': q.location,
+            'quantity': qty,
+            'reserved': res,
+            'available': avail,
+            'stock_status': st_display,
+            'stock_badge': st_badge,
+            'movement': mov,
+            'demand': dem,
+            'last_updated': q.updated_at
+        })
+
+    categories = ProductCategory.query.order_by(ProductCategory.name.asc()).all()
+
+    summary_metrics = {
+        'total_products': total_products,
+        'total_quantity': total_qty,
+        'low_stock_products': low_stock_count,
+        'out_of_stock_products': out_of_stock_count,
+        'fast_moving_products': fast_moving_count,
+        'slow_moving_products': slow_moving_count
+    }
+
+    return render_template(
+        'warehouses/warehouse_stock.html',
+        warehouse=wh,
+        stock_items=detailed_stock_items,
+        summary=summary_metrics,
+        categories=categories,
+        current_filters={'category_id': category_id, 'q': search_query}
+    )
 
 
 @warehouses_bp.route('/locations/new', methods=['POST'])

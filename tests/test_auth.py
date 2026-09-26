@@ -103,15 +103,15 @@ def test_otp_password_reset_and_expiration(app):
         assert success2 is True
 
         # Reset with correct OTP
-        reset_ok, reset_msg = AuthService.verify_and_reset_password('reset@test.com', fresh_otp, 'newsupersecret')
+        reset_ok, reset_msg = AuthService.verify_and_reset_password('reset@test.com', fresh_otp, 'NewPassword123!')
         assert reset_ok is True
 
         # Check login with new password
-        u = AuthService.authenticate_user('reset@test.com', 'newsupersecret')
+        u = AuthService.authenticate_user('reset@test.com', 'NewPassword123!')
         assert u is not None
 
         # Re-using OTP should fail
-        fail_ok, _ = AuthService.verify_and_reset_password('reset@test.com', fresh_otp, 'anothersecret')
+        fail_ok, _ = AuthService.verify_and_reset_password('reset@test.com', fresh_otp, 'AnotherPassword123!')
         assert fail_ok is False
 
 

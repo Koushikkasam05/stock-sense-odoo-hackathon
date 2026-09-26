@@ -4,6 +4,7 @@ from app.models.product import ProductCategory, Product, StockQuant
 from app.models.operation import StockPicking, StockMove
 from app.models.ledger import StockLedgerEntry
 from app.models.notification import Notification
+from app.models.audit import AuditLog
 
 # Schema Model Aliases for flexible naming conventions
 Category = ProductCategory
@@ -14,6 +15,7 @@ __all__ = [
     'User',
     'OTPToken',
     'Notification',
+    'AuditLog',
     'Warehouse',
     'Location',
     'ProductCategory',
